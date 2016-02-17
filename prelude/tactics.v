@@ -161,8 +161,8 @@ Ltac fold_classes_hyps H :=
     end
   end.
 Tactic Notation "csimpl" "in" hyp(H) :=
-  try (progress simpl in H; fold_classes_hyps H).
-Tactic Notation "csimpl" := try (progress simpl; fold_classes).
+  try (progress cbn in H).
+Tactic Notation "csimpl" := try (progress cbn).
 Tactic Notation "csimpl" "in" "*" :=
   repeat_on_hyps (fun H => csimpl in H); csimpl.
 
