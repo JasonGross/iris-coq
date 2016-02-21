@@ -211,6 +211,12 @@ Proof.
     [rewrite -Hx; setoid_rewrite <-HP|rewrite Hx; setoid_rewrite HP]; auto.
 Qed.
 
+Lemma L x y z : z ⋅ x ⋅ y ≡ y ⋅ x.
+Proof. Admitted.
+
+Lemma l x y : x ⋅ y ≡ y ⋅ x.
+Proof. rewrite -L. rewrite -!assoc.
+
 (** ** Validity *)
 Lemma cmra_valid_validN x : ✓ x ↔ ∀ n, ✓{n} x.
 Proof. done. Qed.
