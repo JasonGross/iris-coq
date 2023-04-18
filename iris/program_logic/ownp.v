@@ -69,12 +69,12 @@ Theorem ownP_invariance Σ `{!ownPGpreS Λ Σ} s e σ1 t2 σ2 φ :
   φ σ2.
 Proof.
   intros Hwp Hsteps. eapply (wp_invariance Σ Λ s e σ1 t2 σ2 _)=> //.
-  iIntros (? κs).
+  iIntros (Hinv κs).
   iMod (own_alloc (●E σ1 ⋅ ◯E σ1)) as (γσ) "[Hσ Hσf]";
     first by apply auth_both_valid_discrete.
   iExists (λ σ κs' _, own γσ (●E σ))%I, (λ _, True%I).
   iFrame "Hσ".
-  iMod (Hwp (OwnPGS _ _ _ _ γσ) with "[Hσf]") as "[$ H]";
+  iMod (Hwp (OwnPGS _ _ Hinv _ γσ) with "[Hσf]") as "[$ H]";
     first by rewrite /ownP; iFrame.
   iIntros "!> Hσ". iExists ∅. iMod "H" as (σ2') "[Hσf %]". rewrite /ownP.
   iCombine "Hσ Hσf"

@@ -58,7 +58,9 @@ Ltac pm_reduce :=
   (* Use [change_no_check] instead of [change] to avoid performing the
   conversion check twice. *)
   match goal with |- ?u => let v := pm_eval u in change_no_check v end.
-Ltac pm_reflexivity := pm_reduce; exact eq_refl.
+
+Ltac pm_reflexivity :=
+  pm_reduce; notypeclasses refine eq_refl.
 
 (** Called by many tactics for redexes that are created by instantiation.
     This cannot create any envs redexes so we just do the cbn part. *)
