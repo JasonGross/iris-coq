@@ -636,9 +636,7 @@ Proof. iExists {[ 1%positive ]}, ∅. auto. Qed.
 
 Lemma test_iSpecialize_tc P : (∀ x y z : gset positive, P) -∗ P.
 Proof.
-  iIntros "H".
-  (* FIXME: this [unshelve] and [apply _] should not be needed. *)
-  unshelve iSpecialize ("H" $! ∅ {[ 1%positive ]} ∅); try apply _. done.
+  iIntros "H". iSpecialize ("H" $! ∅ {[ 1%positive ]} ∅). done.
 Qed.
 
 Lemma test_iFrame_pure `{!Sbi PROP} {A : ofe} (φ : Prop) (y z : A) :
@@ -1773,6 +1771,22 @@ Proof.
   somehow realize that [x] is coming later, and pick a different name for the [?]. *)
   Fail iIntros (? x).
 Abort.
+
+Lemma test_iSpecialize_tc_done P :
+  (∀ X : gset nat, (if decide (X = ∅) then True else False) -∗ P) -∗ P.
+Proof.
+  (** Test that the instance for [∅] is resolved before [done] (i.e., the [//]
+  pattern) is executed. *)
+  iIntros "H". iApply ("H" $! ∅ with "[//]").
+Qed.
+
+Lemma test_iSpecialize_tc_exact P Q :
+  Q -∗ (∀ X : gset nat, (if decide (X = ∅) then Q else False) -∗ P) -∗ P.
+Proof.
+  (** Test that the instance for [∅] is resolved before [done] (i.e., the [//]
+  pattern) is executed. *)
+  iIntros "HQ H". iApply ("H" $! ∅ with "HQ").
+Qed.
 
 Check "test_iExistDestruct_generic_error_1".
 Lemma test_iExistDestruct_generic_error_1 P :

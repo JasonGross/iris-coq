@@ -827,7 +827,7 @@ Local Ltac iSpecializeArgs_go H xs :=
        |lazymatch goal with (* Force [A] in [ex_intro] to deal with coercions. *)
         | |- ∃ _ : ?A, _ =>
           notypeclasses refine (@ex_intro A _ x _)
-        end; [shelve..|pm_reduce; iSpecializeArgs_go H xs]]
+        end; resolve_tc x; pm_reduce; iSpecializeArgs_go H xs]
   end.
 Local Tactic Notation "iSpecializeArgs" constr(H) open_constr(xs) :=
   iSpecializeArgs_go H xs.
