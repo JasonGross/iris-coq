@@ -4,35 +4,43 @@ From iris.prelude Require Import options.
 Import bi.
 
 (** This file defines the instances that make up the framing machinery. *)
-
-Section class_instances_frame.
-Context {PROP : bi}.
-Implicit Types P Q R : PROP.
-
 (** When framing [R] against itself, we leave [True] if possible (via
 [frame_here_absorbing] or [frame_affinely_here_absorbing]) since it is a weaker
 goal. Otherwise we leave [emp] via [frame_here].
 Only if all those options fail, we start decomposing [R], via instances like
 [frame_exist]. To ensure that, all other instances must have cost > 1. *)
-Global Instance frame_here_absorbing p R :
-  QuickAbsorbing R → Frame p R R True | 0.
+Lemma frame_here_absorbing {PROP : bi} p (R : PROP) :
+  QuickAbsorbing R → Frame p R R True.
 Proof.
   rewrite /QuickAbsorbing /Frame. intros.
   by rewrite intuitionistically_if_elim sep_elim_l.
 Qed.
-Global Instance frame_here p R : Frame p R R emp | 1.
+Lemma frame_here {PROP : bi} p (R : PROP) : Frame p R R emp.
 Proof. intros. by rewrite /Frame intuitionistically_if_elim sep_elim_l. Qed.
-Global Instance frame_affinely_here_absorbing p R :
-  QuickAbsorbing R → Frame p (<affine> R) R True | 0.
+Lemma frame_affinely_here_absorbing {PROP : bi} p (R : PROP) :
+  QuickAbsorbing R → Frame p (<affine> R) R True.
 Proof.
   rewrite /QuickAbsorbing /Frame. intros.
   rewrite intuitionistically_if_elim affinely_elim. apply sep_elim_l, _.
 Qed.
-Global Instance frame_affinely_here p R : Frame p (<affine> R) R emp | 1.
+Lemma frame_affinely_here {PROP : bi} p (R : PROP) : Frame p (<affine> R) R emp.
 Proof.
   intros. rewrite /Frame intuitionistically_if_elim affinely_elim.
   apply sep_elim_l, _.
 Qed.
+
+Global Hint Extern 0 (Frame _ _ _ _) =>
+  notypeclasses refine (frame_here_absorbing _ _ _) : typeclass_instances.
+Global Hint Extern 1 (Frame _ _ _ _) =>
+  notypeclasses refine (frame_here _ _) : typeclass_instances.
+Global Hint Extern 0 (Frame _ (<affine> _) _ _) =>
+  notypeclasses refine (frame_affinely_here_absorbing _ _ _) : typeclass_instances.
+Global Hint Extern 1 (Frame _ (<affine> _) _ _) =>
+  notypeclasses refine (frame_affinely_here _ _) : typeclass_instances.
+
+Section class_instances_frame.
+Context {PROP : bi}.
+Implicit Types P Q R : PROP.
 
 Global Instance frame_here_pure_persistent a φ Q :
   FromPure a Q φ → Frame true ⌜φ⌝ Q emp | 2.
