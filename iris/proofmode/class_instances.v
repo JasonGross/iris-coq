@@ -25,6 +25,15 @@ Proof. by rewrite /FromExist. Qed.
 Global Hint Extern 0 (FromExist _ _) =>
   notypeclasses refine (from_exist_exist _) : typeclass_instances.
 
+Lemma into_wand_wand {PROP : bi} p q (P Q P' : PROP) :
+  FromAssumption q P P' → IntoWand p q (P' -∗ Q) P Q.
+Proof.
+  rewrite /FromAssumption /IntoWand=> HP. by rewrite HP intuitionistically_if_elim.
+Qed.
+Global Hint Extern 0 (IntoWand _ _ _ _ _) =>
+  notypeclasses refine (into_wand_wand _ _ _ _ _ _);
+    [(* the FromAssumption goal *)|shelve.. (* evars *)] : typeclass_instances.
+
 Section class_instances.
 Context {PROP : bi}.
 Implicit Types P Q R : PROP.
@@ -426,11 +435,6 @@ Global Instance into_wand_wandM' p q mP (Q P' Q' : PROP) :
   IntoWand' p q (mP -∗? Q) P' Q' → IntoWand p q (mP -∗? Q) P' Q' | 100.
 Proof. done. Qed.
 
-Global Instance into_wand_wand p q P Q P' :
-  FromAssumption q P P' → IntoWand p q (P' -∗ Q) P Q.
-Proof.
-  rewrite /FromAssumption /IntoWand=> HP. by rewrite HP intuitionistically_if_elim.
-Qed.
 (** Implication instances
   For non-affine BIs, generally we assume [P → ...] is written in cases where
   that would be equivalent to [<affine> P -∗ ...], i.e., [P] is absorbing and
