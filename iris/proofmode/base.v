@@ -5,6 +5,9 @@ From iris.prelude Require Import options.
 From Ltac2 Require Ltac2.
 
 (** * Utility definitions used by the proofmode *)
+(** Call type class search on all evars in [x]. The tactic fails if type class
+search fails on one of the evars in [x]. *)
+Ltac resolve_tc := ltac2:(x |- Std.resolve_tc (Option.get (Ltac1.to_constr x))).
 
 (** ** N-ary tactics *)
 (** Ltac1 does not provide primitives to manipulate lists (e.g., [ident_list],
