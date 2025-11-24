@@ -20,8 +20,8 @@ Section lock_gen.
     ⊢ WP lock_client_gen {{ _, True }}.
   Proof.
     unfold lock_client_gen. wp_alloc l as "Hl".
-    wp_smart_apply (newlock_spec (∃ n : Z, l ↦ #n) with "[Hl]")
-      as (lk γ) "#Hlock"; first by eauto.
+    wp_smart_apply (newlock_spec (∃ n : Z, l ↦ #n)%I with "[$Hl]")
+      as (lk γ) "#Hlock".
     wp_smart_apply (acquire_spec with "Hlock") as "(Hlocked & %v & Hloc)".
     wp_store.
     wp_smart_apply (release_spec with "[$Hlock $Hlocked Hloc]"); by eauto.
@@ -50,8 +50,8 @@ Section lock_spin.
     projections. That is, it should not show [spin_lock.<something>]. *)
     simpl. Show.
     wp_alloc l as "Hl".
-    wp_smart_apply (newlock_spec (∃ n : Z, l ↦ #n) with "[Hl]")
-      as (lk γ) "#Hlock"; first by eauto.
+    wp_smart_apply (newlock_spec (∃ n : Z, l ↦ #n) with "[$Hl]")
+      as (lk γ) "#Hlock".
     wp_smart_apply (acquire_spec with "Hlock") as "(Hlocked & %v & Hloc)".
     wp_store.
     wp_smart_apply (release_spec with "[$Hlock $Hlocked Hloc]"); by eauto.

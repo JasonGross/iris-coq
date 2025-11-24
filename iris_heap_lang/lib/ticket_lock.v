@@ -72,17 +72,19 @@ Section proof.
       (iDestruct "H" as "[[H◯ H]|H◯]"; [iLeft; iFrame "H◯"; by iApply "HR"|by iRight]).
   Qed.
 
-  Local Lemma newlock_spec (R : iProp Σ) :
-    {{{ R }}} newlock #() {{{ lk γ, RET lk; is_lock γ lk R }}}.
+  Local Lemma newlock_spec_delay_init :
+    {{{ True }}} newlock #() {{{ lk γ, RET lk; ∀ R E, R ={E}=∗ is_lock γ lk R }}}.
   Proof.
-    iIntros (Φ) "HR HΦ". wp_lam.
+    iIntros (Φ) "_ HΦ". wp_lam.
     wp_alloc ln as "Hln". wp_alloc lo as "Hlo".
     iMod (own_alloc (● (Excl' 0, GSet ∅) ⋅ ◯ (Excl' 0, GSet ∅))) as (γ) "[Hγ Hγ']".
     { by apply auth_both_valid_discrete. }
-    iMod (inv_alloc _ _ (lock_inv γ lo ln R) with "[-HΦ]").
+    wp_pures. iApply "HΦ".
+    iIntros "!> %R %E HR".
+    iMod (inv_alloc _ _ (lock_inv γ lo ln R) with "[-]").
     { iNext. rewrite /lock_inv.
       iExists 0, 0. auto with iFrame. }
-    wp_pures. iModIntro. iApply ("HΦ" $! (#lo, #ln)%V γ). iExists lo, ln. eauto.
+    iExists lo, ln. eauto.
   Qed.
 
   Local Lemma wait_loop_spec γ lk x R :
@@ -160,6 +162,6 @@ Definition ticket_lock : lock :=
   {| lock.lockG := tlockG;
      lock.locked_exclusive _ _ _ _ := locked_exclusive;
      lock.is_lock_iff _ _ _ _ := is_lock_iff;
-     lock.newlock_spec _ _ _ _ := newlock_spec;
+     lock.newlock_spec_delay_init _ _ _ _ := newlock_spec_delay_init;
      lock.acquire_spec _ _ _ _ := acquire_spec;
      lock.release_spec _ _ _ _ := release_spec |}.
