@@ -1,0 +1,121 @@
+"test_impl"
+     : string
+1 goal
+  
+  PROP : bi
+  Sbi0 : Sbi PROP
+  A : ofe
+  x, y, z : A
+  ============================
+  ∀ n : nat, x ≡{n}≡ y → y ≡{n}≡ z → x ≡{n}≡ z
+"test_impl_impl_and"
+     : string
+1 goal
+  
+  PROP : bi
+  Sbi0 : Sbi PROP
+  A : ofe
+  x, y, z : A
+  ============================
+  ∀ n : nat, x ≡{n}≡ y → y ≡{n}≡ z → x ≡{n}≡ z ∧ z ≡{n}≡ x
+"test_exist_impl"
+     : string
+1 goal
+  
+  PROP : bi
+  Sbi0 : Sbi PROP
+  A : ofe
+  x, z : A
+  ============================
+  ∀ n : nat, (∃ x0 : A, x ≡{n}≡ x0 ∧ x0 ≡{n}≡ z) → x ≡{n}≡ z
+"test_exist_impl"
+     : string
+1 goal
+  
+  PROP : bi
+  Sbi0 : Sbi PROP
+  A : ofe
+  x, z : A
+  ============================
+  ∀ n : nat, x ≡{n}≡ z → ∃ x0 : A, x ≡{n}≡ x0 ∧ x0 ≡{n}≡ z
+"test_si_pure_exist"
+     : string
+1 goal
+  
+  PROP : bi
+  Sbi0 : Sbi PROP
+  A : ofe
+  x, z : A
+  ============================
+  ∀ n : nat, (∃ x0 : A, x ≡{n}≡ x0 ∧ x0 ≡{n}≡ z) → x ≡{n}≡ z
+"test_equiv_exist"
+     : string
+1 goal
+  
+  PROP : bi
+  Sbi0 : Sbi PROP
+  A : ofe
+  x, z : A
+  ============================
+  ∀ n : nat, x ≡{n}≡ z ↔ ∃ x0 : A, x ≡{n}≡ x0 ∧ x0 ≡{n}≡ z
+"test_iff_exist"
+     : string
+1 goal
+  
+  PROP : bi
+  Sbi0 : Sbi PROP
+  A : ofe
+  x, z : A
+  ============================
+  ∀ n : nat, x ≡{n}≡ z ↔ ∃ x0 : A, x ≡{n}≡ x0 ∧ x0 ≡{n}≡ z
+"test_wand_iff_exist"
+     : string
+1 goal
+  
+  PROP : bi
+  Sbi0 : Sbi PROP
+  A : ofe
+  x, z : A
+  ============================
+  ∀ n : nat, x ≡{n}≡ z ↔ ∃ x0 : A, x ≡{n}≡ x0 ∧ x0 ≡{n}≡ z
+"test_wand_iff_exist"
+     : string
+1 goal
+  
+  PROP : bi
+  Sbi0 : Sbi PROP
+  A : ofe
+  x, z : A
+  ============================
+  ∀ n : nat,
+    match n with
+    | 0 => True
+    | S n' => x ≡{n'}≡ z
+    end
+    ↔ ∃ x0 : A,
+        match n with
+        | 0 => True
+        | S n' => x ≡{n'}≡ x0 ∧ x0 ≡{n'}≡ z
+        end
+"test_exist_impl"
+     : string
+1 goal
+  
+  PROP : bi
+  Sbi0 : Sbi PROP
+  A : ofe
+  x, z : A
+  ============================
+  ∀ n : nat,
+    x ≡{n}≡ z → ∃ x0 : A, ∀ n' : nat, n' ≤ n → x ≡{n'}≡ x0 → x0 ≡{n'}≡ z
+"test_forall_impl"
+     : string
+1 goal
+  
+  PROP : bi
+  Sbi0 : Sbi PROP
+  A : ofe
+  x, z : A
+  ============================
+  ∀ n : nat,
+    (∀ (x0 : A) (n' : nat), n' ≤ n → x ≡{n'}≡ x0 → x0 ≡{n'}≡ z) → x ≡{n}≡ z

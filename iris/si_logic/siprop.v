@@ -49,6 +49,11 @@ Section cofe.
   Qed.
 End cofe.
 
+(** [SiProp_downclose] takes a nat-based predicate and turns it into an [siProp]
+by closing it off. It is used for [siProp_impl] and [SbiUnfold]. *)
+Definition SiProp_downclose (Pi : nat → Prop) : siProp :=
+  SiProp (λ n, ∀ n', n' ≤ n → Pi n') ltac:(simpl; eauto using Nat.le_trans).
+
 (** logical entailement *)
 Inductive siProp_entails (P Q : siProp) : Prop :=
   { siProp_in_entails : ∀ n, P n → Q n }.
@@ -80,8 +85,7 @@ Local Definition siProp_or_unseal :
   @siProp_or = @siProp_or_def := seal_eq siProp_or_aux.
 
 Local Program Definition siProp_impl_def (P Q : siProp) : siProp :=
-  {| siProp_holds n := ∀ n', n' ≤ n → P n' → Q n' |}.
-Next Obligation. intros P Q [|n1] [|n2]; auto with lia. Qed.
+  SiProp_downclose (λ n, P n → Q n).
 Local Definition siProp_impl_aux : seal (@siProp_impl_def). Proof. by eexists. Qed.
 Definition siProp_impl := unseal siProp_impl_aux.
 Local Definition siProp_impl_unseal :
