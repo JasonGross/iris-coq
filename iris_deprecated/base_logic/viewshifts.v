@@ -51,7 +51,7 @@ Proof. iIntros "!> []". Qed.
 Lemma vs_timeless E P : Timeless P → ⊢ ▷ P ={E}=> P.
 Proof. by iIntros (?) "!> > ?". Qed.
 
-Lemma vs_transitive E1 E2 E3 P Q R :
+Lemma vs_trans E1 E2 E3 P Q R :
   (P ={E1,E2}=> Q) ∧ (Q ={E2,E3}=> R) ⊢ P ={E1,E3}=> R.
 Proof.
   iIntros "#[HvsP HvsQ] !> HP".
