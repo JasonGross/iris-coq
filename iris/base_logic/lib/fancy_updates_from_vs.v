@@ -20,7 +20,7 @@ Context (vs_ne : ∀ E1 E2, NonExpansive2 (vs E1 E2)).
 Context (vs_persistent : ∀ E1 E2 P Q, Persistent (P ={E1,E2}=> Q)).
 
 Context (vs_impl : ∀ E P Q, □ (P → Q) ⊢ P ={E,E}=> Q).
-Context (vs_transitive : ∀ E1 E2 E3 P Q R,
+Context (vs_trans : ∀ E1 E2 E3 P Q R,
   (P ={E1,E2}=> Q) ∧ (Q ={E2,E3}=> R) ⊢ P ={E1,E3}=> R).
 Context (vs_mask_frame_r : ∀ E1 E2 Ef P Q,
   E1 ## Ef → (P ={E1,E2}=> Q) ⊢ P ={E1 ∪ Ef,E2 ∪ Ef}=> Q).
@@ -45,16 +45,16 @@ Proof. iIntros "HP". iExists P. iFrame "HP". iApply vs_impl; auto. Qed.
 Lemma fupd_mono E1 E2 P Q : (P ⊢ Q) → (|={E1,E2}=> P) ⊢ |={E1,E2}=> Q.
 Proof.
   iIntros (HPQ); iDestruct 1 as (R) "[HR Hvs]".
-  iExists R; iFrame "HR". iApply (vs_transitive with "[$Hvs]").
+  iExists R; iFrame "HR". iApply (vs_trans with "[$Hvs]").
   iApply vs_impl. iIntros "!> HP". by iApply HPQ.
 Qed.
 
 Lemma fupd_trans E1 E2 E3 P : (|={E1,E2}=> |={E2,E3}=> P) ⊢ |={E1,E3}=> P.
 Proof.
   iDestruct 1 as (R) "[HR Hvs]". iExists R. iFrame "HR".
-  iApply (vs_transitive with "[$Hvs]"). clear R.
+  iApply (vs_trans with "[$Hvs]"). clear R.
   iApply vs_exists; iIntros (R). iApply vs_persistent_intro_r; iIntros "Hvs".
-  iApply (vs_transitive with "[$Hvs]"). iApply vs_impl; auto.
+  iApply (vs_trans with "[$Hvs]"). iApply vs_impl; auto.
 Qed.
 
 Lemma fupd_mask_frame_r E1 E2 Ef P :
