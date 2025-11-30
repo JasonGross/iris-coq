@@ -9,6 +9,17 @@ From Ltac2 Require Ltac2.
 search fails on one of the evars in [x]. *)
 Ltac resolve_tc := ltac2:(x |- Std.resolve_tc (Option.get (Ltac1.to_constr x))).
 
+(** Call type class search on all evars in [x] whose type is ground. For
+instance, it would solve [? : Empty nat] but not [? : BiAffine ?PROP]. This
+tactic does not fail. *)
+Ltac try_resolve_ground_tc t :=
+  lazymatch t with
+  | ?t1 ?t2 => try_resolve_ground_tc t1; try_resolve_ground_tc t2
+  | _ =>
+     let T := type of t in
+     try (has_evar t; is_ground T; let t' := constr:(_ : T) in unify t t')
+  end.
+
 (** ** N-ary tactics *)
 (** Ltac1 does not provide primitives to manipulate lists (e.g., [ident_list],
 [simple_intropattern_list]), needed for [iIntros], [iDestruct], etc. We can do

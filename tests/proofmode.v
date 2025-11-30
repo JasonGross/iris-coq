@@ -636,7 +636,105 @@ Proof. iExists {[ 1%positive ]}, ∅. auto. Qed.
 
 Lemma test_iSpecialize_tc P : (∀ x y z : gset positive, P) -∗ P.
 Proof.
-  iIntros "H". iSpecialize ("H" $! ∅ {[ 1%positive ]} ∅). done.
+  (** Test that type classes in specialization patterns are resolved. Both when
+  using [iSpecialize] and tactics that use [iSpecialize] internally. *)
+  iIntros "H".
+  (* We use [unshelve] to test that there are no unshelved goals *)
+  unshelve iSpecialize ("H" $! ∅ {[ 1%positive ]} ∅). done.
+Restart. Proof.
+  iIntros "H". solve [unshelve iApply ("H" $! ∅ {[ 1%positive ]} ∅)].
+Qed.
+Lemma test_iSpecialize_tc_args P : (∀ x y z : gset positive, ⊢ P) → ⊢ P.
+Proof.
+  (** Similarly as above, but the arguments of [H] now live at the Rocq level *)
+  intros H. solve [unshelve iApply (H ∅ {[ 1%positive ]} ∅)].
+Qed.
+
+Lemma test_iSpecialize_tc_done_specpat P :
+  (∀ X : gset nat, (if decide (X = ∅) then True else False) -∗ P) -∗ P.
+Proof.
+  (** Test that the instance for [∅] is resolved before the [//] pattern is
+  executed, and not only at the very end. *)
+  iIntros "H". iApply ("H" $! ∅ with "[//]").
+Qed.
+Lemma test_iSpecialize_tc_done_args P :
+  (∀ X : gset nat, (if decide (X = ∅) then True else False) -∗ P) →
+  ⊢ P.
+Proof. intros H. iApply (H ∅ with "[//]"). Qed.
+
+Lemma test_iSpecialize_tc_exact_specpat P Q :
+  Q -∗ (∀ X : gset nat, (if decide (X = ∅) then Q else False) -∗ P) -∗ P.
+Proof. iIntros "HQ H". iApply ("H" $! ∅ with "HQ"). Qed.
+Lemma test_iSpecialize_tc_exact_args P Q :
+  (∀ X : gset nat, (if decide (X = ∅) then Q else False) -∗ P) →
+  Q -∗ P.
+Proof. iIntros (H) "HQ". iApply (H ∅ with "HQ"). Qed.
+
+Lemma test_iSpecialize_tc_dependency_specpat P :
+  (∀ A (_ : Inhabited A) (_ : EqDecision A),
+    (if decide (inhabitant =@{A} inhabitant) then True else False) -∗ P) -∗
+  P.
+Proof.
+  (* A variation, where the type class instances depend on a prior argument
+  (here [A]). We test that it also works with and without underscores. *)
+  iIntros "H". unshelve iSpecialize ("H" $! nat _ _). iApply "H".
+Restart. Proof.
+  iIntros "H". iApply ("H" $! nat _ _ with "[//]").
+Restart. Proof.
+  iIntros "H". iApply ("H" $! nat with "[//]").
+Qed.
+Lemma test_iSpecialize_tc_dependency_args P :
+  (∀ `{!Inhabited A, !EqDecision A},
+    (if decide (inhabitant =@{A} inhabitant) then True else False) -∗ P) →
+  ⊢ P.
+Proof.
+  intros H. unshelve iPoseProof (H nat _ _) as "H". by iApply "H".
+Restart. Proof.
+  intros H. iApply (H nat _ _ with "[//]").
+Restart. Proof.
+  intros H. iApply (H nat with "[//]").
+Qed.
+Lemma test_iSpecialize_tc_dependency_lem P :
+  let lem (A : Type) := (∀ (ia : Inhabited A), ∀(eqd : EqDecision A),
+    ((if decide (inhabitant =@{A} inhabitant) then True else False) -∗ P) : Prop) in
+  (∀ A, lem A) →
+  ⊢ P.
+Proof.
+  (* We hide part of the "lemma" behind a definition. This means that the "fast
+  path" in [_iIntoEmpValid_go] is not used. *)
+  intros lem H. unshelve iPoseProof (H nat _ _) as "lem". by iApply "lem".
+Restart. Proof.
+  intros lem H. iApply (H nat _ _ with "[//]").
+Restart. Proof.
+  intros lem H. iApply (H nat with "[//]").
+Qed.
+
+Lemma test_iSpecialize_tc_dependency_specpat_2 P :
+  (∀ A (_ : Empty A) (_ : ∀ m, Decision (m =@{A} ∅)),
+    (if decide (∅ =@{A} ∅) then True else False) -∗ P) -∗
+  P.
+Proof.
+  (* Another variation with dependencies between the arguments. In order to
+  solve [Decision], we need to solve [Empty] because [Decision] on [gmap] only
+  holds for the empty element. *)
+  iIntros "H".
+  unshelve iSpecialize ("H" $! (gmap nat (nat → nat)) _ _). iApply "H".
+Restart. Proof.
+  iIntros "H". iApply ("H" $! (gmap nat (nat → nat)) _ _ with "[//]").
+Restart. Proof.
+  iIntros "H". iApply ("H" $! (gmap nat (nat → nat)) with "[//]").
+Qed.
+Lemma test_iSpecialize_tc_dependency_args_2 P :
+  (∀ A `{!Empty A, !∀ m, Decision (m =@{A} ∅)},
+    (if decide (∅ =@{A} ∅) then True else False) -∗ P) →
+  ⊢ P.
+Proof.
+  intros H.
+  unshelve iPoseProof (H (gmap nat (nat → nat)) _ _) as "lem". iApply "lem".
+Restart. Proof.
+  intros H. iApply (H (gmap nat (nat → nat)) _ _ with "[//]").
+Restart. Proof.
+  intros H. iApply (H (gmap nat (nat → nat)) with "[//]").
 Qed.
 
 Lemma test_iFrame_pure `{!Sbi PROP} {A : ofe} (φ : Prop) (y z : A) :
@@ -1771,22 +1869,6 @@ Proof.
   somehow realize that [x] is coming later, and pick a different name for the [?]. *)
   Fail iIntros (? x).
 Abort.
-
-Lemma test_iSpecialize_tc_done P :
-  (∀ X : gset nat, (if decide (X = ∅) then True else False) -∗ P) -∗ P.
-Proof.
-  (** Test that the instance for [∅] is resolved before [done] (i.e., the [//]
-  pattern) is executed. *)
-  iIntros "H". iApply ("H" $! ∅ with "[//]").
-Qed.
-
-Lemma test_iSpecialize_tc_exact P Q :
-  Q -∗ (∀ X : gset nat, (if decide (X = ∅) then Q else False) -∗ P) -∗ P.
-Proof.
-  (** Test that the instance for [∅] is resolved before [done] (i.e., the [//]
-  pattern) is executed. *)
-  iIntros "HQ H". iApply ("H" $! ∅ with "HQ").
-Qed.
 
 Check "test_iExistDestruct_generic_error_1".
 Lemma test_iExistDestruct_generic_error_1 P :
