@@ -354,9 +354,10 @@ Lemma test_iApply_evar_refine {A} P (Q : A → PROP) (f : nat → A) :
 Proof.
   (* The evar [?b] has [x] in scope, but [?a] has not. When performing the
   [iApply], the unification [?a = f ?b] needs to be solved. Since [?a] has
-  a smaller scope, this means that a new evar [?b'] without [x] in scope needs
-  to be created. The handle these cases, we use [shelve] the [Hint Extern] for
-  the leaf instance [into_wand_wand]. *)
+  a smaller scope, Rocq cannot resolve [?a] to [f ?b] directly. Instead,
+  it introduces a new evar [?b'] without [x] in scope, resolves [?a] to [f ?b'],
+  and resolves [?b] to [?b']. That new evar appears as a goal that we explicitly
+  have to [shelve] in the [Hint Extern] for the leaf instance [into_wand_wand]. *)
   eexists; intros x; eexists.
   iIntros "H HP". by iApply "H". Unshelve. exact 0.
 Qed.
@@ -716,8 +717,8 @@ Lemma test_iSpecialize_tc_dependency_specpat P :
     (if decide (inhabitant =@{A} inhabitant) then True else False) -∗ P) -∗
   P.
 Proof.
-  (* A variation, where the type class instances depend on a prior argument
-  (here [A]). We test that it also works with and without underscores. *)
+  (* A variation of the previous test, where the instances depend on a prior
+  argument (here [A]). We test that it also works with and without underscores. *)
   iIntros "H". unshelve iSpecialize ("H" $! nat _ _). iApply "H".
 Restart. Proof.
   iIntros "H". iApply ("H" $! nat _ _ with "[//]").

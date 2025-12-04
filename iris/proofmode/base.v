@@ -28,18 +28,26 @@ compared to [resolve_tc t]:
 
 The typical mode of use in the proof mode is to call [try_resolve_ground_tc] on
 all user-input (e.g., arguments/specialization patterns), and call [resolve_tc]
-at the very end. Through [try_resolve_ground_tc] we ensure that all "simple"
-(i.e., ground) type class constraints are solved before we perform any other
-search or unification (e.g., search for [IntoWand], unification with hypotheses).
-"Difficult" type class constraints might be resolved during search (e.g., by
-unifying a hypothesis), but any that remains is solved in the end using
+at the very end. Through [try_resolve_ground_tc] we ensure that classes without
+modes are not solved too eagerly (resulting in wrong instances or divergence).
+The remaining the classes that are not solved through other means (e.g., search
+for [IntoWand], unification with hypotheses) are solved in the end using
 [resolve_tc]. *)
 Ltac try_resolve_ground_tc t :=
   lazymatch t with
+  (* We proceed under applications to solve the arguments of a given lemma one
+  by one. We proceed on both the left and the right of the application to handle
+  terms like [lem (@gset A ?eqdec ?countable)]. *)
   | ?t1 ?t2 => try_resolve_ground_tc t1; try_resolve_ground_tc t2
   | _ =>
      let T := type of t in
-     try (has_evar t; is_ground T; let t' := constr:(_ : T) in unify t t')
+     try ((* call type class search if [t] has an evar and its type [T] is
+          ground. *)
+          has_evar t; is_ground T;
+          (* [t'] is the result of invoking type class search for [T] *)
+          let t' := constr:(_ : T) in
+          (* instantiate [t] with its instance [t'] *)
+          unify t t')
   end.
 
 (** ** N-ary tactics *)

@@ -5,30 +5,36 @@ From iris.prelude Require Import options.
 Import bi.
 
 (* FIXME(Coq #6294): needs new unification *)
-(** Leaf instances are defined using a [Hint Extern] to use evarconv ([refine])
-instead oflegacy unification ([apply]). We use [shelve] to avoid the creation of
-unshelved goals for evars by [refine], which otherwise causes TC search to fail.
-Such unshelved goals are created for when solving [FromAssumption p ?P ?Q] where
-both [?P] and [?Q] when [?P] and [?Q] have different variables in scope. See
-[test_iApply_evar] and friends in [tests/proofmode] for examples. *)
+(** All leaf instances below are defined with [Hint Extern] to use evarconv
+([refine]) instead of legacy unification ([apply]). *)
+
 Lemma from_assumption_exact {PROP : bi} p (P : PROP) : FromAssumption p P P.
 Proof. by rewrite /FromAssumption /= intuitionistically_if_elim. Qed.
 Global Hint Extern 0 (FromAssumption _ _ _) =>
-  notypeclasses refine (from_assumption_exact _ _); shelve : typeclass_instances.
+  (* See [test_iAssumption_evar_refine] for an example where evars are created
+  during unification.*)
+  notypeclasses refine (from_assumption_exact _ _);
+    shelve (* evars created during unification *) : typeclass_instances.
 
 Lemma into_wand_wand {PROP : bi} p q (P Q P' : PROP) :
   FromAssumption q P P' → IntoWand p q (P' -∗ Q) P Q.
 Proof.
   rewrite /FromAssumption /IntoWand=> HP. by rewrite HP intuitionistically_if_elim.
 Qed.
-Global Hint Extern 0 (IntoWand _ _ _ _ _) =>
-  notypeclasses refine (into_wand_wand _ _ _ _ _ _);
-    [(* the FromAssumption goal *)|shelve.. (* evars *)] : typeclass_instances.
 
-(* FIXME(Coq #6294): needs new unification *)
-(** Similarly, the lemma [from_exist_exist] is defined using a [Hint Extern] to
-enable the better unification algorithm.
-See https://gitlab.mpi-sws.org/iris/iris/issues/288 *)
+Global Hint Extern 0 (IntoWand _ _ _ _ _) =>
+  (* This leaves behind two kinds of subgoals: the [FromAssumption] premise of
+  this instance, and new evars created during unification. We want to keep
+  solving the former and shelve the latter. It turns out our premise always
+  comes first, so we shelve all but the first goal.
+  See [test_iApply_evar_refine] for an example where evars are created during
+  unification. *)
+  notypeclasses refine (into_wand_wand _ _ _ _ _ _);
+    [(* the FromAssumption goal *)
+    |shelve.. (* evars created during unification *)] : typeclass_instances.
+
+(* See https://gitlab.mpi-sws.org/iris/iris/issues/288 and [test_iExists_unused]
+for an example where an ordinary [Instance] fails. *)
 Lemma from_exist_exist {PROP : bi} {A} (Φ : A → PROP) : FromExist (∃ a, Φ a) Φ.
 Proof. by rewrite /FromExist. Qed.
 Global Hint Extern 0 (FromExist _ _) =>

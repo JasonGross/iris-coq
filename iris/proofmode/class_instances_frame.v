@@ -31,6 +31,7 @@ Qed.
 
 Global Hint Extern 0 (Frame _ _ _ _) =>
   notypeclasses refine (frame_here_absorbing _ _ _);
+    (* See [into_wand_wand] for an explanation of what is happening here. *)    
     [(* the [QuickAbsorbing] goal *)|shelve.. (* evars *)] : typeclass_instances.
 Global Hint Extern 1 (Frame _ _ _ _) =>
   notypeclasses refine (frame_here _ _); shelve : typeclass_instances.
