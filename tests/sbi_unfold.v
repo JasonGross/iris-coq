@@ -1,6 +1,8 @@
 From stdpp Require Import strings.
 From iris.bi Require Import bi.
 
+Unset Mangle Names.
+
 Section tests.
   Context `{!Sbi PROP}.
 
