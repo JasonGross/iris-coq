@@ -5,25 +5,16 @@ From iris.prelude Require Import options.
 Import bi.
 
 (* FIXME(Coq #6294): needs new unification *)
-(** The lemma [from_assumption_exact] is not an instance, but defined using
-[notypeclasses refine] through [Hint Extern] to enable the better unification
-algorithm. We use [shelve] to avoid the creation of unshelved goals for evars
-by [refine], which otherwise causes TC search to fail. Such unshelved goals are
-created for example when solving [FromAssumption p ?P ?Q] where both [?P] and
-[?Q] are evars. See [test_iApply_evar] in [tests/proofmode] for an example. *)
+(** Leaf instances are defined using a [Hint Extern] to use evarconv ([refine])
+instead oflegacy unification ([apply]). We use [shelve] to avoid the creation of
+unshelved goals for evars by [refine], which otherwise causes TC search to fail.
+Such unshelved goals are created for when solving [FromAssumption p ?P ?Q] where
+both [?P] and [?Q] when [?P] and [?Q] have different variables in scope. See
+[test_iApply_evar] and friends in [tests/proofmode] for examples. *)
 Lemma from_assumption_exact {PROP : bi} p (P : PROP) : FromAssumption p P P.
 Proof. by rewrite /FromAssumption /= intuitionistically_if_elim. Qed.
 Global Hint Extern 0 (FromAssumption _ _ _) =>
   notypeclasses refine (from_assumption_exact _ _); shelve : typeclass_instances.
-
-(* FIXME(Coq #6294): needs new unification *)
-(** Similarly, the lemma [from_exist_exist] is defined using a [Hint Extern] to
-enable the better unification algorithm.
-See https://gitlab.mpi-sws.org/iris/iris/issues/288 *)
-Lemma from_exist_exist {PROP : bi} {A} (Φ : A → PROP) : FromExist (∃ a, Φ a) Φ.
-Proof. by rewrite /FromExist. Qed.
-Global Hint Extern 0 (FromExist _ _) =>
-  notypeclasses refine (from_exist_exist _) : typeclass_instances.
 
 Lemma into_wand_wand {PROP : bi} p q (P Q P' : PROP) :
   FromAssumption q P P' → IntoWand p q (P' -∗ Q) P Q.
@@ -33,6 +24,15 @@ Qed.
 Global Hint Extern 0 (IntoWand _ _ _ _ _) =>
   notypeclasses refine (into_wand_wand _ _ _ _ _ _);
     [(* the FromAssumption goal *)|shelve.. (* evars *)] : typeclass_instances.
+
+(* FIXME(Coq #6294): needs new unification *)
+(** Similarly, the lemma [from_exist_exist] is defined using a [Hint Extern] to
+enable the better unification algorithm.
+See https://gitlab.mpi-sws.org/iris/iris/issues/288 *)
+Lemma from_exist_exist {PROP : bi} {A} (Φ : A → PROP) : FromExist (∃ a, Φ a) Φ.
+Proof. by rewrite /FromExist. Qed.
+Global Hint Extern 0 (FromExist _ _) =>
+  notypeclasses refine (from_exist_exist _) : typeclass_instances.
 
 Section class_instances.
 Context {PROP : bi}.

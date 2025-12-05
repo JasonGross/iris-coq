@@ -30,13 +30,15 @@ Proof.
 Qed.
 
 Global Hint Extern 0 (Frame _ _ _ _) =>
-  notypeclasses refine (frame_here_absorbing _ _ _) : typeclass_instances.
+  notypeclasses refine (frame_here_absorbing _ _ _);
+    [(* the [QuickAbsorbing] goal *)|shelve.. (* evars *)] : typeclass_instances.
 Global Hint Extern 1 (Frame _ _ _ _) =>
-  notypeclasses refine (frame_here _ _) : typeclass_instances.
+  notypeclasses refine (frame_here _ _); shelve : typeclass_instances.
 Global Hint Extern 0 (Frame _ (<affine> _) _ _) =>
-  notypeclasses refine (frame_affinely_here_absorbing _ _ _) : typeclass_instances.
+  notypeclasses refine (frame_affinely_here_absorbing _ _ _);
+    [(* the [QuickAbsorbing] goal *)|shelve.. (* evars *)] : typeclass_instances.
 Global Hint Extern 1 (Frame _ (<affine> _) _ _) =>
-  notypeclasses refine (frame_affinely_here _ _) : typeclass_instances.
+  notypeclasses refine (frame_affinely_here _ _); shelve : typeclass_instances.
 
 Section class_instances_frame.
 Context {PROP : bi}.

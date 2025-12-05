@@ -347,6 +347,47 @@ Proof. iIntros "[H1 H2]". by iSplitL. Qed.
 Lemma test_iApply_evar P Q R : (∀ Q, Q -∗ P) -∗ R -∗ P.
 Proof. iIntros "H1 H2". iApply "H1". iExact "H2". Qed.
 
+Check "test_iApply_evar_refine".
+Lemma test_iApply_evar_refine {A} P (Q : A → PROP) (f : nat → A) :
+  ∃ a, ∀ x : A, ∃ b,
+    (P -∗ Q (f b)) -∗ (P -∗ Q a).
+Proof.
+  (* The evar [?b] has [x] in scope, but [?a] has not. When performing the
+  [iApply], the unification [?a = f ?b] needs to be solved. Since [?a] has
+  a smaller scope, this means that a new evar [?b'] without [x] in scope needs
+  to be created. The handle these cases, we use [shelve] the [Hint Extern] for
+  the leaf instance [into_wand_wand]. *)
+  eexists; intros x; eexists.
+  iIntros "H HP". by iApply "H". Unshelve. exact 0.
+Qed.
+
+Check "test_iExact_evar_refine".
+Lemma test_iExact_evar_refine {A} (Q : A → PROP) (f : nat → A) :
+  ∃ a, ∀ x : A, ∃ b,
+    Q (f b) -∗ Q a.
+Proof.
+  eexists; intros x; eexists.
+  iIntros "H". iExact "H". Unshelve. exact 0.
+Qed.
+
+Check "test_iAssumption_evar_refine".
+Lemma test_iAssumption_evar_refine {A} (Q : A → PROP) (f : nat → A) :
+  ∃ a, ∀ x : A, ∃ b,
+    Q (f b) -∗ Q a.
+Proof.
+  eexists; intros x; eexists.
+  iIntros "H". iAssumption. Unshelve. exact 0.
+Qed.
+
+Check "test_iFrame_evar_refine".
+Lemma test_iFrame_evar_refine {A} (Q : A → PROP) (f : nat → A) :
+  ∃ a, ∀ x : A, ∃ b,
+    Q (f b) -∗ Q a.
+Proof.
+  eexists; intros x; eexists.
+  iIntros "H". iFrame "H". Unshelve. exact 0.
+Qed.
+
 Lemma test_iApply_1 (P Q : PROP) :
   (▷ P -∗ Q) -∗ P -∗ Q.
 Proof.

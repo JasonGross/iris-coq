@@ -157,6 +157,14 @@ Tactic failure: iExistDestruct: cannot destruct P.
   ============================
   --------------------------------------∗
   P -∗ P
+"test_iApply_evar_refine"
+     : string
+"test_iExact_evar_refine"
+     : string
+"test_iAssumption_evar_refine"
+     : string
+"test_iFrame_evar_refine"
+     : string
 The command has indeed failed with message:
 No applicable tactic.
 The command has indeed failed with message:
