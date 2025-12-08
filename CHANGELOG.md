@@ -144,6 +144,10 @@ The opam packages have been renamed from `coq-*` to `rocq-*`.
 * Prove `wp_resolve_strong` which lets the user retain ownership of the proph
   token `proph p pvs` when proving the weakest pre for the inner expression,
   allowing one to atomically resolve the same prophecy twice. (by Johannes Hostert)
+* Update the `atomic_heap` interface so that it supports non-trivial
+  implementations. Every operation now requires an implementation-defined
+  invariant (`heap_inv`) to hold, and a certain namespace (`atomic_heapN`) to
+  be available. The interface also provides more laws about `pointsto`. (by Alessio Duè)
 
 The following `sed` script helps adjust your code to the renaming (on macOS,
 replace `sed` by `gsed`, installed via e.g. `brew install gnu-sed`).

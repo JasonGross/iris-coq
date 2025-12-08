@@ -14,7 +14,7 @@
   "Hl" : l ↦ v
   --------------------------------------∗
   AACC <{ ∃∃ (v0 : val) (q : dfrac), l ↦{q} v0, ABORT Q ∗ l ↦ v }>
-       @ ⊤ ∖ ∅, ∅
+       @ ⊤ ∖ ↑atomic_heapN, ∅
        <{ l ↦{q} v0, COMM Q }>
 "test_awp_apply_without"
      : string
@@ -31,7 +31,7 @@
   "Hl" : l ↦ v
   --------------------------------------∗
   AACC <{ ∃∃ (v0 : val) (q : dfrac), l ↦{q} v0, ABORT l ↦ v }>
-       @ ⊤ ∖ ∅, ∅
+       @ ⊤ ∖ ↑atomic_heapN, ∅
        <{ l ↦{q} v0, COMM Q -∗ Q }>
 "printing"
      : string
