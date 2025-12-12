@@ -89,7 +89,7 @@ build-rocq.9.1.0-mr:
 build-rocq.9.1.0-dune:
   <<: *template
   variables:
-    OPAM_PINS: "dune version 3.19.1   rocq-core version 9.1.0   rocq-stdlib version 9.0.0"
+    OPAM_PINS: "rocq-core version 9.1.0   rocq-stdlib version 9.0.0"
     MAKE_TARGET: "dune"
 
 # The oldest version runs in MRs, without name mangling.
