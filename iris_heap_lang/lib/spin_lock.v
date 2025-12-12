@@ -46,15 +46,17 @@ Section proof.
       first [done|iDestruct "H" as "[$ ?]"; by iApply "HR"].
   Qed.
 
-  Local Lemma newlock_spec (R : iProp Σ):
-    {{{ R }}} newlock #() {{{ lk γ, RET lk; is_lock γ lk R }}}.
+  Local Lemma newlock_spec_delay_init :
+    {{{ True }}} newlock #() {{{ lk γ, RET lk; ∀ R E, R ={E}=∗ is_lock γ lk R }}}.
   Proof.
-    iIntros (Φ) "HR HΦ". rewrite /newlock /=.
+    iIntros (Φ) "_ HΦ".
     wp_lam. wp_alloc l as "Hl".
     iMod token_alloc as (γ) "Hγ".
-    iMod (inv_alloc N _ (lock_inv γ l R) with "[-HΦ]") as "#?".
+    iApply "HΦ".
+    iIntros "!> %R %E HR".
+    iMod (inv_alloc N _ (lock_inv γ l R) with "[-]") as "#?".
     { iIntros "!>". iExists false. by iFrame. }
-    iModIntro. iApply "HΦ". iExists l. eauto.
+    iExists l. eauto.
   Qed.
 
   Local Lemma try_acquire_spec γ lk R :
@@ -91,11 +93,11 @@ Section proof.
 End proof.
 
 (* NOT an instance because users should choose explicitly to use it
-     (using [Explicit Instance]). *)
+     (using [Existing Instance]). *)
 Definition spin_lock : lock :=
   {| lock.lockG := spin_lockG;
      lock.locked_exclusive _ _ _ _ := locked_exclusive;
      lock.is_lock_iff _ _ _ _ := is_lock_iff;
-     lock.newlock_spec _ _ _ _ := newlock_spec;
+     lock.newlock_spec_delay_init _ _ _ _ := newlock_spec_delay_init;
      lock.acquire_spec _ _ _ _ := acquire_spec;
      lock.release_spec _ _ _ _ := release_spec |}.

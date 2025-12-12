@@ -124,6 +124,10 @@ The opam packages have been renamed from `coq-*` to `rocq-*`.
 
 * Improve `wp_pure credit:"H"` so that if `H` is an existing credit, it gets
   incremented by 1. (by @ffengyu)
+* Add `newlock_spec_delay_init` to the [lock interface](iris_heap_lang/lib/lock.v).
+  The previous specification of the `newlock` operation required the resource
+  protected by the lock to be chosen and provided immediately. It is now
+  possible to do it at a later time. (by Alessio Duè)
 
 The following `sed` script helps adjust your code to the renaming (on macOS,
 replace `sed` by `gsed`, installed via e.g. `brew install gnu-sed`).

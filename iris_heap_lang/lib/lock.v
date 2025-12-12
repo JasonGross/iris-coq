@@ -42,8 +42,10 @@ Class lock := Lock {
   locked_exclusive `{!heapGS_gen hlc Σ} {L : lockG Σ} γ :
     locked (L:=L) γ -∗ locked (L:=L) γ -∗ False;
   (** * Program specs *)
-  newlock_spec `{!heapGS_gen hlc Σ} {L : lockG Σ} (R : iProp Σ) :
-    {{{ R }}} newlock #() {{{ lk γ, RET lk; is_lock (L:=L) γ lk R }}};
+  newlock_spec_delay_init `{!heapGS_gen hlc Σ} {L : lockG Σ} :
+    {{{ True }}}
+      newlock #()
+    {{{ lk γ, RET lk; ∀ R E, R ={E}=∗ is_lock (L:=L) γ lk R  }}};
   acquire_spec `{!heapGS_gen hlc Σ} {L : lockG Σ} γ lk R :
     {{{ is_lock (L:=L) γ lk R }}} acquire lk {{{ RET #(); locked (L:=L) γ ∗ R }}};
   release_spec `{!heapGS_gen hlc Σ} {L : lockG Σ} γ lk R :
@@ -71,3 +73,17 @@ Qed.
 
 Global Instance is_lock_proper `{!heapGS_gen hlc Σ, !lock, !lockG Σ} γ lk :
   Proper ((≡) ==> (≡)) (is_lock γ lk) := ne_proper _.
+
+Section derived.
+  Context `{!lock, !heapGS_gen hlc Σ, !lockG Σ}.
+
+  Lemma newlock_spec (R : iProp Σ) :
+    {{{ R }}} newlock #() {{{ lk γ, RET lk; is_lock γ lk R }}}.
+  Proof.
+    iIntros (Φ) "HR HΦ".
+    iApply wp_fupd.
+    wp_apply newlock_spec_delay_init; first done.
+    iIntros (lk γ) "Hlk". iApply "HΦ".
+    by iMod ("Hlk" $! R ⊤ with "HR").
+  Qed.
+End derived.
