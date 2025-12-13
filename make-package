@@ -34,7 +34,7 @@ grep -E "^-Q $PROJECT[ /]" _CoqProject >> "$COQFILE"
 sed -n '/./!q;p' _CoqProject | grep -E -v "^-Q " >> "$COQFILE"
 # Get the files.
 grep -E "^$PROJECT/" _CoqProject >> "$COQFILE"
-# Now we can run coq_makefile.
+# Now we can generate the makefile.
 "${COQBIN}rocq" makefile -f "$COQFILE" -o "$MAKEFILE"
 
 # Run build
