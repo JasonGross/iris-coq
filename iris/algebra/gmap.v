@@ -481,10 +481,7 @@ Proof.
 Qed.
 
 Lemma gmap_op_union m1 m2 : m1 ##ₘ m2 → m1 ⋅ m2 = m1 ∪ m2.
-Proof.
-  intros Hm. apply map_eq=> k. specialize (Hm k).
-  rewrite lookup_op lookup_union. by destruct (m1 !! k), (m2 !! k).
-Qed.
+Proof. intros Hm. apply map_disjoint_merge_as_union; done. Qed.
 
 Lemma gmap_op_valid0_disjoint m1 m2 :
   ✓{0ᵢ} (m1 ⋅ m2) → (∀ k x, m1 !! k = Some x → Exclusive x) → m1 ##ₘ m2.
