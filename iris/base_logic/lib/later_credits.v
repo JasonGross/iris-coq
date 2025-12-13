@@ -7,7 +7,6 @@ From iris.algebra Require Export auth numbers.
 From iris.base_logic.lib Require Import iprop own.
 Import uPred.
 
-
 (** The ghost state for later credits *)
 Class lcGpreS (Σ : gFunctors) := LcGpreS {
   #[local] lcGpreS_inG :: inG Σ (authR natUR)
@@ -22,7 +21,6 @@ Global Hint Mode lcGS - : typeclass_instances.
 Definition lcΣ := #[GFunctor (authR (natUR))].
 Global Instance subG_lcΣ {Σ} : subG lcΣ Σ → lcGpreS Σ.
 Proof. solve_inG. Qed.
-
 
 (** The user-facing credit resource, denoting ownership of [n] credits. *)
 Local Definition lc_def `{!lcGS Σ} (n : nat) : iProp Σ := own lcGS_name (◯ n).
@@ -43,7 +41,6 @@ Local Definition lc_supply := lc_supply_aux.(unseal).
 Local Definition lc_supply_unseal :
   @lc_supply = @lc_supply_def := lc_supply_aux.(seal_eq).
 Global Arguments lc_supply {Σ _} n.
-
 
 Section later_credit_theory.
   Context `{!lcGS Σ}.
