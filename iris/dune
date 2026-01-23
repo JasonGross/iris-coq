@@ -1,5 +1,5 @@
 (include_subdirs qualified)
-(coq.theory
+(rocq.theory
  (name iris)
  (package rocq-iris)
  (theories Stdlib Ltac2 stdpp))

@@ -1,5 +1,5 @@
 (include_subdirs qualified)
-(coq.theory
+(rocq.theory
  (name iris.unstable)
  (package rocq-iris-unstable)
  (theories Stdlib stdpp iris iris.heap_lang))
