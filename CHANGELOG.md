@@ -87,6 +87,12 @@ The opam packages have been renamed from `coq-*` to `rocq-*`.
 * Remove deprecated `proofmode.tactics` module. (by Sanjit Bhat)
 * Provide proper error when performing `iDestruct` on `▷ ∃ : A, ..` without
   `A` being inhabited.
+* Change all proofmode tactics to use Rocq's better unification algorithm
+  internally (evar_conv/`notypeclasses refine` instead of unification/`apply`).
+  This could change the behavior slightly in some corner cases. If you have
+  defined your own proofmode tactics, you might want to update the internals to
+  use `notypeclasses refine` instead of `apply` to ensure consistency (but this
+  is not necessary).
 
 **Changes in `si_logic`:**
 
