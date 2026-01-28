@@ -229,6 +229,24 @@ Section gen_heap.
     intros; iSplit; first by iApply meta_token_union_1.
     iIntros "[Hm1 Hm2]". by iApply (meta_token_union_2 with "Hm1 Hm2").
   Qed.
+  Lemma meta_token_valid_2 l E1 E2 :
+    meta_token l E1 -∗ meta_token l E2 -∗ ⌜E1 ## E2⌝.
+  Proof.
+    rewrite meta_token_unseal /meta_token_def.
+    iIntros "(%γm1 & #Hγm1 & Hm1) (%γm2 & #Hγm2 & Hm2)".
+    iCombine "Hγm1 Hγm2" gives %[_ ->].
+    by iCombine "Hm1 Hm2" gives %?%reservation_map_token_valid_op.
+  Qed.
+
+  Lemma meta_token_ne l1 l2 E :
+    E ≠ ∅ → meta_token l1 ⊤ -∗ meta_token l2 E -∗ ⌜l1 ≠ l2⌝.
+  Proof.
+    iIntros "% H1 H2" (->).
+    iPoseProof (meta_token_valid_2 with "H1 H2") as "%Hdisj".
+    destruct (Hdisj (coPpick E)) as [].
+    - done.
+    - by eapply coPpick_elem_of.
+  Qed.
 
   Lemma meta_token_difference l E1 E2 :
     E1 ⊆ E2 → meta_token l E2 ⊣⊢ meta_token l E1 ∗ meta_token l (E2 ∖ E1).
