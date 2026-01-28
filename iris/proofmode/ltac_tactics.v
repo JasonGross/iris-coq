@@ -7,6 +7,31 @@ From iris.proofmode Require Export classes notation.
 From iris.prelude Require Import options.
 Export ident.
 
+(** About unification and type class search:
+
+- The implementation of the proof mode only use evarconv ([refine]) and not
+  legacy unification ([apply]) because the former is more reliable.
+- We carefully control type class inference. We only use [notypeclasses refine]
+  and invoke type class inference manually when needed.
+
+To control type class search, we call [tc_solve] on side-conditions such as
+[IntoWand] (and generate an error if the search fails).
+
+More tricky is when to call type class search on input terms, for example, in
+[iDestruct foo], [iApply foo], [iSpecialize ("H" with foo)]. Here, the term [foo]
+might contain unresolved type classes. The principle we use is as follows: We
+first solve all ground classes in [foo] (evars [?x : C] where [C] does not
+contain evars, e.g., [?x : Empty nat] is ground but [?x : BiAffine ?PROP] is
+not), then perform the work of the tactic (which might solve some classes through
+unification), and finally solve all remaining classes in [foo]. We solve
+ground classes first to avoid solving classes without [Hint Mode] too eagerly,
+and therefore accidentally selecting the wrong instance or diverging. In an ideal
+world this heuristic would not be needed, but in practice there are still too
+many classes without [Hint Mode] (especially downstream).
+
+We control this kind of type class search through the tactics [resolve_tc] and
+[try_resolve_ground_tc], see [base.v] for the documentation. *)
+
 (** Tactic used for solving side-conditions arising from TC resolution in [iMod]
 and [iInv]. *)
 Ltac iSolveSideCondition :=
@@ -92,12 +117,12 @@ Tactic Notation "iStartProof" uconstr(PROP) :=
      to find the corresponding bi. *)
   | |- ?φ => notypeclasses refine ((λ P : PROP, @as_emp_valid_2 φ _ P) _ _ _);
                [tc_solve || fail "iStartProof: goal" φ "not a" PROP "assertion"
-               |apply tac_start]
+               |notypeclasses refine (tac_start _ _)]
   end.
 
 Tactic Notation "iStopProof" :=
   lazymatch goal with
-  | |- envs_entails _ _ => apply tac_stop; pm_reduce
+  | |- envs_entails _ _ => notypeclasses refine (tac_stop _ _ _); pm_reduce
   | |- _ => fail "iStopProof: proofmode not started"
   end.
 
@@ -130,7 +155,7 @@ Ltac iFresh :=
 
 (** * Context manipulation *)
 Tactic Notation "iRename" constr(H1) "into" constr(H2) :=
-  eapply tac_rename with H1 H2 _ _; (* (i:=H1) (j:=H2) *)
+  notypeclasses refine (tac_rename _ H1 H2 _ _ _ _ _); (* (i:=H1) (j:=H2) *)
     [pm_reflexivity ||
      let H1 := pretty_ident H1 in
      fail "iRename:" H1 "not found"
@@ -181,7 +206,7 @@ Ltac iElaborateSelPat pat :=
   end.
 
 Ltac _iClearHyp H :=
-  eapply tac_clear with H _ _; (* (i:=H) *)
+  notypeclasses refine (tac_clear _ H _ _ _ _ _ _); (* (i:=H) *)
     [pm_reflexivity ||
      let H := pretty_ident H in
      fail "iClear:" H "not found"
@@ -209,7 +234,7 @@ Tactic Notation "iClear" "select" open_constr(pat) :=
 (** ** Simplification *)
 Tactic Notation "iEval" tactic3(t) :=
   iStartProof;
-  eapply tac_eval;
+  notypeclasses refine (tac_eval _ _ _ _ _);
     [let x := fresh in intros x; t; unfold x; reflexivity
     |].
 
@@ -218,7 +243,7 @@ Local Ltac iEval_go t Hs :=
   | [] => idtac
   | ESelPure :: ?Hs => fail "iEval: %: unsupported selection pattern"
   | ESelIdent _ ?H :: ?Hs =>
-    eapply tac_eval_in with H _ _ _;
+    notypeclasses refine (tac_eval_in _ H _ _ _ _ _ _ _);
       [pm_reflexivity || let H := pretty_ident H in fail "iEval:" H "not found"
       |let x := fresh in intros x; t; unfold x; reflexivity
       |pm_reduce; iEval_go t Hs]
@@ -248,7 +273,7 @@ Ltac, but it may be possible in Ltac2. *)
 
 (** * Assumptions *)
 Tactic Notation "iExact" constr(H) :=
-  eapply tac_assumption with H _ _; (* (i:=H) *)
+  notypeclasses refine (tac_assumption _ H _ _ _ _ _ _); (* (i:=H) *)
     [pm_reflexivity ||
      let H := pretty_ident H in
      fail "iExact:" H "not found"
@@ -280,9 +305,9 @@ Tactic Notation "iAssumptionCoq" :=
   let Hass := fresh in
   match goal with
   | H : ⊢ ?P |- envs_entails _ ?Q =>
-     pose proof (_ : FromAssumption false P Q) as Hass;
+     assert (FromAssumption false P Q) as Hass by tc_solve;
      notypeclasses refine (tac_assumption_coq _ P _ H _ _);
-       [exact Hass
+       [notypeclasses refine Hass
        |pm_reduce; tc_solve ||
         fail 2 "iAssumption: remaining hypotheses not affine and the goal not absorbing"]
   end.
@@ -292,17 +317,17 @@ Tactic Notation "iAssumption" :=
   let rec find p Γ Q :=
     lazymatch Γ with
     | Esnoc ?Γ ?j ?P => first
-       [pose proof (_ : FromAssumption p P Q) as Hass;
-        eapply (tac_assumption _ j p P);
+       [assert (FromAssumption p P Q) as Hass by tc_solve;
+        notypeclasses refine (tac_assumption _ j p P _ _ _ _);
           [pm_reflexivity
-          |exact Hass
+          |notypeclasses refine Hass
           |pm_reduce; tc_solve ||
            fail 2 "iAssumption: remaining hypotheses not affine and the goal not absorbing"]
        |assert_fails (is_evar P); 
-        assert (P = False%I) as Hass by reflexivity;
-        apply (tac_false_destruct _ j p P);
+        assert (P = False%I) as Hass by notypeclasses refine eq_refl;
+        notypeclasses refine (tac_false_destruct _ j p P _ _ _);
           [pm_reflexivity
-          |exact Hass]
+          |notypeclasses refine Hass]
        |find p Γ Q]
     end in
   lazymatch goal with
@@ -316,11 +341,11 @@ Tactic Notation "iAssumption" :=
 (** * False *)
 Tactic Notation "iExFalso" :=
   iStartProof;
-  apply tac_ex_falso.
+  notypeclasses refine (tac_ex_falso _ _ _).
 
 (** * Making hypotheses intuitionistic or pure *)
 Ltac _iIntuitionistic H H' :=
-  eapply tac_intuitionistic with H H' _ _ _; (* (i:=H) (j:=H') *)
+  notypeclasses refine (tac_intuitionistic _ H H' _ _ _ _ _ _ _ _); (* (i:=H) (j:=H') *)
     [pm_reflexivity ||
      let H := pretty_ident H in
      fail "iIntuitionistic:" H "not found"
@@ -339,7 +364,7 @@ Ltac _iIntuitionistic H H' :=
      end].
 
 Ltac _iSpatial H H' :=
-  eapply tac_spatial with H H' _ _ _;
+  notypeclasses refine (tac_spatial _ H H' _ _ _ _ _ _ _);
     [pm_reflexivity ||
      let H := pretty_ident H in
      fail "iSpatial:" H "not found"
@@ -353,7 +378,7 @@ Ltac _iSpatial H H' :=
      end].
 
 Tactic Notation "iPure" constr(H) "as" simple_intropattern(pat) :=
-  eapply tac_pure with H _ _ _; (* (i:=H1) *)
+  notypeclasses refine (tac_pure _ H _ _ _ _ _ _ _ _); (* (i:=H1) *)
     [pm_reflexivity ||
      let H := pretty_ident H in
      fail "iPure:" H "not found"
@@ -367,13 +392,13 @@ Tactic Notation "iPure" constr(H) "as" simple_intropattern(pat) :=
 
 Tactic Notation "iEmpIntro" :=
   iStartProof;
-  eapply tac_emp_intro;
+  notypeclasses refine (tac_emp_intro _ _);
     [pm_reduce; tc_solve ||
      fail "iEmpIntro: spatial context contains non-affine hypotheses"].
 
 Tactic Notation "iPureIntro" :=
   iStartProof;
-  eapply tac_pure_intro;
+  notypeclasses refine (tac_pure_intro _ _ _ _ _ _ _);
     [tc_solve ||
      let P := match goal with |- FromPure _ ?P _ => P end in
      fail "iPureIntro:" P "not pure"
@@ -405,13 +430,13 @@ Ltac _iFrameFinish :=
 Ltac _iFramePure t :=
   iStartProof;
   let φ := type of t in
-  eapply (tac_frame_pure _ _ _ _ t);
+  notypeclasses refine (tac_frame_pure _ _ _ _ t _ _);
     [tc_solve || fail "iFrame: cannot frame" φ
     |].
 
 Ltac _iFrameHyp H :=
   iStartProof;
-  eapply tac_frame with H _ _ _;
+  notypeclasses refine (tac_frame _ H _ _ _ _ _ _ _);
     [pm_reflexivity ||
      let H := pretty_ident H in
      fail "iFrame:" H "not found"
@@ -490,7 +515,7 @@ Tactic Notation "_iIntro" "(" simple_intropattern(x) ")" :=
     iStartProof;
     lazymatch goal with
     | |- envs_entails _ _ =>
-      eapply tac_forall_intro;
+      notypeclasses refine (tac_forall_intro _ _ _ _ _ _);
         [tc_solve ||
          let P := match goal with |- FromForall ?P _ _ => P end in
          fail "iIntro: cannot turn" P "into a universal quantifier"
@@ -507,7 +532,7 @@ Ltac _iIntroSpatial H :=
   iStartProof;
   first
   [(* (?Q → _) *)
-    eapply tac_impl_intro with H _ _ _; (* (i:=H) *)
+    notypeclasses refine (tac_impl_intro _ H _ _ _ _ _ _ _ _); (* (i:=H) *)
       [tc_solve
       |pm_reduce; tc_solve ||
        let P := lazymatch goal with |- Persistent ?P => P end in
@@ -524,7 +549,7 @@ Ltac _iIntroSpatial H :=
         | _ => idtac (* subgoal *)
         end]
   |(* (_ -∗ _) *)
-    eapply tac_wand_intro with H _ _; (* (i:=H) *)
+    notypeclasses refine (tac_wand_intro _ H _ _ _ _ _); (* (i:=H) *)
       [tc_solve
       | pm_reduce;
         lazymatch goal with
@@ -540,7 +565,7 @@ Ltac _iIntroPersistent H :=
   iStartProof;
   first
   [(* (?P → _) *)
-   eapply tac_impl_intro_intuitionistic with H _ _ _; (* (i:=H) *)
+   notypeclasses refine (tac_impl_intro_intuitionistic _ H _ _ _ _ _ _ _); (* (i:=H) *)
      [tc_solve
      |tc_solve ||
       let P := match goal with |- IntoPersistent _ ?P _ => P end in
@@ -553,7 +578,7 @@ Ltac _iIntroPersistent H :=
       | _ => idtac (* subgoal *)
       end]
   |(* (?P -∗ _) *)
-   eapply tac_wand_intro_intuitionistic with H _ _ _; (* (i:=H) *)
+   notypeclasses refine (tac_wand_intro_intuitionistic _ H _ _ _ _ _ _ _ _); (* (i:=H) *)
      [tc_solve
      |tc_solve ||
       let P := match goal with |- IntoPersistent _ ?P _ => P end in
@@ -582,11 +607,11 @@ Ltac _iIntroDrop :=
   iStartProof;
   first
   [(* (?Q → _) *)
-   eapply tac_impl_intro_drop;
+   notypeclasses refine (tac_impl_intro_drop _ _ _ _ _ _);
      [tc_solve
      |(* subgoal *)]
   |(* (_ -∗ _) *)
-   eapply tac_wand_intro_drop;
+   notypeclasses refine (tac_wand_intro_drop _ _ _ _ _ _ _);
      [tc_solve
      |tc_solve ||
       let P := match goal with |- TCOr (Affine ?P) _ => P end in
@@ -640,25 +665,26 @@ Ltac iForallRevert x :=
   lazymatch type of A with
   | Prop =>
      revert x; first
-       [eapply tac_pure_revert;
+       [notypeclasses refine (tac_pure_revert _ _ _ _ _ _);
          [tc_solve (* [MakeAffinely], should never fail *)
          |]
        |err x]
   | _ =>
     revert x; first
-      [apply tac_forall_revert;
+      [notypeclasses refine (tac_forall_revert _ _ _);
        (* Ensure the name [x] is preserved, see [test_iRevert_order_and_names]. *)
        lazymatch goal with
        | |- envs_entails ?Δ (bi_forall ?P) =>
          change (envs_entails Δ (∀ x, P x)); lazy beta
        end
       |err x]
+  | _ => revert x; first [notypeclasses refine (tac_forall_revert _ _ _)|err x]
   end.
 
 (** The tactic [iRevertHyp H with tac] reverts the hypothesis [H] and calls
 [tac] with a Boolean that is [true] iff [H] was in the intuitionistic context. *)
 Tactic Notation "iRevertHyp" constr(H) "with" tactic1(tac) :=
-  eapply tac_revert with H;
+  notypeclasses refine (tac_revert _ H _ _);
     [lazymatch goal with
      | |- match envs_lookup_delete true ?i ?Δ with _ => _ end =>
         lazymatch eval pm_eval in (envs_lookup_delete true i Δ) with
@@ -752,41 +778,52 @@ code in the last "wildcard" case, but faster on larger goals, where running
 (possibly failing) [notypeclasses refine]s can take a significant amount of
 time.
 *)
-Ltac iIntoEmpValid_go :=
+Ltac _iIntoEmpValid_go :=
   lazymatch goal with
   | |- IntoEmpValid (let _ := _ in _) _ =>
     (* Normalize [let] so we don't need to rely on type class search to do so.
     Letting type class search do so is unreliable, see Iris issue #520, and test
     [test_apply_wand_below_let]. *)
-    lazy zeta; iIntoEmpValid_go
+    lazy zeta; _iIntoEmpValid_go
   | |- IntoEmpValid (?φ → ?ψ) _ =>
     (* Case [φ → ψ] *)
     (* note: the ltac pattern [_ → _] would not work as it would also match
        [∀ _, _] *)
     notypeclasses refine (into_emp_valid_impl _ _ _ _ _);
-      [(*goal for [φ] *)|iIntoEmpValid_go]
-  | |- IntoEmpValid (∀ _, _) _ =>
+      [(*goal for [φ] *)|_iIntoEmpValid_go]
+  | |- IntoEmpValid (∀ _ : _, _) _ =>
     (* Case [∀ x : A, φ] *)
-    notypeclasses refine (into_emp_valid_forall _ _ _ _); iIntoEmpValid_go
-  | |- IntoEmpValid (∀.. _, _) _ =>
-    (* Case [∀.. x : TT, φ] *)
-    notypeclasses refine (into_emp_valid_tforall _ _ _ _); iIntoEmpValid_go
+    (* Placeholder for the witness, so we can call [try_resolve_ground_tc]. *)
+    let x := open_constr:(_) in
+    notypeclasses refine (into_emp_valid_forall _ _ x _);
+    try_resolve_ground_tc x;
+    _iIntoEmpValid_go
+  | |- IntoEmpValid (∀.. _ : _, _) _ =>
+    (* The witness is a telescope, so it cannot be a type class. Hence no need
+    for [try_resolve_ground_tc] in this case. *)
+    notypeclasses refine (into_emp_valid_tforall _ _ _ _);
+    _iIntoEmpValid_go
   | |- _ =>
     first
       [(* Case [φ → ψ] *)
        notypeclasses refine (into_emp_valid_impl _ _ _ _ _);
-         [(*goal for [φ] *)|iIntoEmpValid_go]
+         [(*goal for [φ] *)|_iIntoEmpValid_go]
       |(* Case [∀ x : A, φ] *)
-       notypeclasses refine (into_emp_valid_forall _ _ _ _); iIntoEmpValid_go
+       (* The handling of type classes should be exactlty the same as the "fast
+       path" for [∀] above. *)
+       let x := open_constr:(_) in
+       notypeclasses refine (into_emp_valid_forall _ _ x _);
+       try_resolve_ground_tc x;
+       _iIntoEmpValid_go
       |(* Case [∀.. x : TT, φ] *)
-       notypeclasses refine (into_emp_valid_tforall _ _ _ _); iIntoEmpValid_go
+       notypeclasses refine (into_emp_valid_tforall _ _ _ _); _iIntoEmpValid_go
       |(* Case [P ⊢ Q], [P ⊣⊢ Q], [⊢ P] *)
        notypeclasses refine (into_emp_valid_here _ _ _) ]
   end.
 
 Ltac iIntoEmpValid :=
   (* Factor out the base case of the loop to avoid needless backtracking *)
-  iIntoEmpValid_go;
+  _iIntoEmpValid_go;
     [.. (* goals for premises *)
     |tc_solve ||
      lazymatch goal with |- @AsEmpValid ?PROP _ ?φ _ =>
@@ -795,7 +832,12 @@ Ltac iIntoEmpValid :=
 Tactic Notation "iPoseProofCoreLem" open_constr(lem) "as" tactic3(tac) :=
   let Hnew := iFresh in
   notypeclasses refine (tac_pose_proof _ Hnew _ _ (into_emp_valid_proj _ _ _ lem) _);
-    [iIntoEmpValid
+    [(* Solve all ground type classes in [lem]. This search is needed because in
+     addition to the search performed by [iIntoEmpValid] becauase the user could
+     have invoked the tactic with a applied [lem] containing evars for unsolved
+     type classes. *)
+     try_resolve_ground_tc lem;
+     iIntoEmpValid
     |pm_reduce;
      lazymatch goal with
      | |- False =>
@@ -803,16 +845,13 @@ Tactic Notation "iPoseProofCoreLem" open_constr(lem) "as" tactic3(tac) :=
        fail "iPoseProof:" Hnew "not fresh"
      | _ => tac Hnew
      end];
-  (* Solve all remaining TC premises generated by [iIntoEmpValid] *)
+  (* [_iIntoEmpValid_go] solves type classes [C] if they appear in [∀ x : C. P]
+  and [P] is dependent on [x]. Type classes of the form [C → P], i.e., without
+  dependency on [P], are turned into explicit goals, which we try to solve now
+  and leave to the user otherwise. *)
   try tc_solve.
 
-(** There is some hacky stuff going on here: because of Coq bug #6583, unresolved
-type classes in e.g. the arguments [xs] of [iSpecializeArgs_go] are resolved at
-arbitrary moments. That is because tactics like [apply], [split] and [eexists]
-wrongly trigger type class search. To avoid TC being triggered too eagerly, the
-tactics below use [notypeclasses refine] instead of [apply], [split] and
-[eexists]. *)
-Local Ltac iSpecializeArgs_go H xs :=
+Ltac _iSpecializeArgs_go H xs :=
   lazymatch xs with
   | hnil => idtac
   | hcons ?x ?xs =>
@@ -823,13 +862,19 @@ Local Ltac iSpecializeArgs_go H xs :=
        |tc_solve ||
         let P := match goal with |- IntoForall ?P _ => P end in
         fail "iSpecialize: cannot instantiate" P "with" x
-       |lazymatch goal with (* Force [A] in [ex_intro] to deal with coercions. *)
+       |lazymatch goal with
         | |- ∃ _ : ?A, _ =>
-          notypeclasses refine (@ex_intro A _ x _)
-        end; [shelve..|pm_reduce; iSpecializeArgs_go H xs]]
+          (* First coerce [x] into the expected type [A]. For instance, we might
+          have [x : nat] and [A := Z]. *)
+          let x := constr:(x:A) in
+          (* Then instantiate the quantifier with the coerced term *)
+          notypeclasses refine (ex_intro _ x _);
+          (* And resolve ground type classes in the coerced term *)
+          try_resolve_ground_tc x
+        end; pm_reduce; _iSpecializeArgs_go H xs]
   end.
-Local Tactic Notation "iSpecializeArgs" constr(H) open_constr(xs) :=
-  iSpecializeArgs_go H xs.
+Tactic Notation "_iSpecializeArgs" constr(H) open_constr(xs) :=
+  _iSpecializeArgs_go H xs.
 
 Ltac iSpecializePat_go H1 pats :=
   let solve_to_wand H1 :=
@@ -968,7 +1013,7 @@ Ltac iSpecializePat_go H1 pats :=
             |let P :=
                match goal with |- envs_entails _ (?P ∗ locked _)%I => P end in
              fail 1 "iSpecialize: premise" P "cannot be solved by framing"]
-         |exact eq_refl]; _iIntroSpatial H1; iSpecializePat_go H1 pats
+         |notypeclasses refine eq_refl]; _iIntroSpatial H1; iSpecializePat_go H1 pats
     end.
 
 Local Tactic Notation "iSpecializePat" open_constr(H) constr(pat) :=
@@ -1043,7 +1088,7 @@ Tactic Notation "iSpecializeCore" open_constr(H)
     | string => constr:(INamed H)
     | _ => H
     end in
-  iSpecializeArgs H xs; [..|
+  _iSpecializeArgs H xs; [..|
     lazymatch type of H with
     | ident =>
        let pat := spec_pat.parse pat in
@@ -1129,7 +1174,11 @@ Tactic Notation "iPoseProofCore" open_constr(lem)
      let Htmp := iFresh in
      iPoseProofCoreHyp t as Htmp; spec_tac Htmp; [..|tac Htmp]
   | _ => iPoseProofCoreLem t as (fun Htmp => spec_tac Htmp; [..|tac Htmp])
-  end.
+  end;
+  (* Solve any remaining type classes in the input. Crucially this is done
+  after the continuation [tac] is called, which might already solve some type
+  classes through unification. *)
+  resolve_tc lem.
 
 (** * The apply tactic *)
 (** [iApply lem] takes an argument [lem : P₁ -∗ .. -∗ Pₙ -∗ Q] (after the
@@ -1151,8 +1200,9 @@ premises [n], the tactic will have the following behavior:
 (* The helper [iApplyHypExact] takes care of the [n=0] case. It fails with level
 0 if we should proceed to the [n > 0] case, and with level 1 if there is an
 actual error. *)
+
 Local Ltac iApplyHypExact H :=
-  eapply tac_assumption with H _ _; (* (i:=H) *)
+  notypeclasses refine (tac_assumption _ H _ _ _ _ _ _); (* (i:=H) *)
     [pm_reflexivity
     |tc_solve
     |pm_reduce; tc_solve ||
@@ -1160,7 +1210,7 @@ Local Ltac iApplyHypExact H :=
 
 Local Ltac iApplyHypLoop H :=
   first
-    [eapply tac_apply with H _ _ _;
+    [notypeclasses refine (tac_apply _ H _ _ _ _ _ _ _);
       [pm_reflexivity
       |tc_solve
       |pm_reduce]
@@ -1182,21 +1232,21 @@ Tactic Notation "iApply" open_constr(lem) :=
 (** * Disjunction *)
 Tactic Notation "iLeft" :=
   iStartProof;
-  eapply tac_or_l;
+  notypeclasses refine (tac_or_l _ _ _ _ _ _);
     [tc_solve ||
      let P := match goal with |- FromOr ?P _ _ => P end in
      fail "iLeft:" P "not a disjunction"
     |(* subgoal *)].
 Tactic Notation "iRight" :=
   iStartProof;
-  eapply tac_or_r;
+  notypeclasses refine (tac_or_r _ _ _ _ _ _);
     [tc_solve ||
      let P := match goal with |- FromOr ?P _ _ => P end in
      fail "iRight:" P "not a disjunction"
     |(* subgoal *)].
 
 Tactic Notation "iOrDestruct" constr(H) "as" constr(H1) constr(H2) :=
-  eapply tac_or_destruct with H _ H1 H2 _ _ _; (* (i:=H) (j1:=H1) (j2:=H2) *)
+  notypeclasses refine (tac_or_destruct _ H _ H1 H2 _ _ _ _ _ _ _); (* (i:=H) (j1:=H1) (j2:=H2) *)
     [pm_reflexivity ||
      let H := pretty_ident H in
      fail "iOrDestruct:" H "not found"
@@ -1215,7 +1265,7 @@ Tactic Notation "iOrDestruct" constr(H) "as" constr(H1) constr(H2) :=
 (** * Conjunction and separating conjunction *)
 Tactic Notation "iSplit" :=
   iStartProof;
-  eapply tac_and_split;
+  notypeclasses refine (tac_and_split _ _ _ _ _ _ _);
     [tc_solve ||
      let P := match goal with |- FromAnd ?P _ _ => P end in
      fail "iSplit:" P "not a conjunction"
@@ -1227,7 +1277,7 @@ Tactic Notation "iSplitL" constr(Hs) :=
   let Hs := String.words Hs in
   let Hs := eval vm_compute in (INamed <$> Hs) in
   let Δ := iGetCtx in
-  eapply tac_sep_split with Left Hs _ _; (* (js:=Hs) *)
+  notypeclasses refine (tac_sep_split _ Left Hs _ _ _ _ _); (* (js:=Hs) *)
     [tc_solve ||
      let P := match goal with |- FromSep ?P _ _ => P end in
      fail "iSplitL:" P "not a separating conjunction"
@@ -1243,7 +1293,7 @@ Tactic Notation "iSplitR" constr(Hs) :=
   let Hs := String.words Hs in
   let Hs := eval vm_compute in (INamed <$> Hs) in
   let Δ := iGetCtx in
-  eapply tac_sep_split with Right Hs _ _; (* (js:=Hs) *)
+  notypeclasses refine (tac_sep_split _ Right Hs _ _ _ _ _); (* (js:=Hs) *)
     [tc_solve ||
      let P := match goal with |- FromSep ?P _ _ => P end in
      fail "iSplitR:" P "not a separating conjunction"
@@ -1259,7 +1309,8 @@ Tactic Notation "iSplitR" := iSplitL "".
 
 (* iDestruct H as [H1 H2] *)
 Ltac _iAndDestruct H H1 H2 :=
-  eapply tac_and_destruct with H _ H1 H2 _ _ _; (* (i:=H) (j1:=H1) (j2:=H2) *)
+  notypeclasses refine (tac_and_destruct _ H _ H1 H2 _ _ _ _ _ _ _);
+    (* (i:=H) (j1:=H1) (j2:=H2) *)
     [pm_reflexivity ||
      let H := pretty_ident H in
      fail "iAndDestruct:" H "not found"
@@ -1281,7 +1332,7 @@ Ltac _iAndDestruct H H1 H2 :=
 
 (* iDestruct H as (depending on d) [H _] or [_ H] *)
 Ltac _iAndDestructChoice H d H' :=
-  eapply tac_and_destruct_choice with H _ d H' _ _ _;
+  notypeclasses refine (tac_and_destruct_choice _ H _ d H' _ _ _ _ _ _ _);
     [pm_reflexivity || fail "iAndDestructChoice:" H "not found"
     |pm_reduce; tc_solve ||
      let P := match goal with |- TCOr (IntoAnd _ ?P _ _) _ => P end in
@@ -1298,7 +1349,7 @@ Ltac _iAndDestructChoice H d H' :=
 
 Ltac _iExists x :=
   iStartProof;
-  eapply tac_exist;
+  notypeclasses refine (tac_exist _ _ _ _ _);
     [tc_solve ||
      let P := match goal with |- FromExist ?P _ => P end in
      fail "iExists:" P "not an existential"
@@ -1328,7 +1379,7 @@ Ltac _iExistDestructFail P := first
 
 Tactic Notation "_iExistDestruct" constr(H)
     "as" simple_intropattern(x) constr(Hx) :=
-  eapply tac_exist_destruct with H _ Hx _ _ _; (* (i:=H) (j:=Hx) *)
+  notypeclasses refine (tac_exist_destruct _ H _ Hx _ _ _ _ _ _ _); (* (i:=H) (j:=Hx) *)
     [pm_reflexivity ||
      let H := pretty_ident H in
      fail "iExistDestruct:" H "not found"
@@ -1383,7 +1434,7 @@ Tactic Notation "iNext" := iModIntro (▷^_ _)%I.
 
 (** * Update modality *)
 Tactic Notation "iModCore" constr(H) "as" constr(H') :=
-  eapply tac_modal_elim with H H' _ _ _ _ _ _;
+  notypeclasses refine (tac_modal_elim _ H H' _ _ _ _ _ _ _ _ _ _ _);
     [pm_reflexivity || fail "iMod:" H "not found"
     |tc_solve ||
      let P := match goal with |- ElimModal _ _ _ ?P _ _ _ => P end in
@@ -1957,7 +2008,8 @@ Tactic Notation "iAssertCore" open_constr(Q)
   | _ => fail "iAssert: exactly one specialization pattern should be given"
   end;
   let H := iFresh in
-  eapply tac_assert with H Q;
+  notypeclasses refine (tac_assert _ H Q _ _);
+  resolve_tc Q;
   [pm_reduce;
    iSpecializeCore H with hnil pats as p; [..|tac H]].
 
@@ -1996,7 +2048,7 @@ Local Ltac iRewriteFindPred :=
 
 Local Tactic Notation "iRewriteCore" constr(lr) open_constr(lem) :=
   iPoseProofCore lem as true (fun Heq =>
-    eapply (tac_rewrite _ Heq _ _ lr);
+    notypeclasses refine (tac_rewrite _ Heq _ _ lr _ _ _ _ _ _ _ _ _);
       [pm_reflexivity ||
        let Heq := pretty_ident Heq in
        fail "iRewrite:" Heq "not found"
@@ -2011,7 +2063,7 @@ Tactic Notation "iRewrite" "-" open_constr(lem) := iRewriteCore Left lem.
 
 Local Tactic Notation "iRewriteCore" constr(lr) open_constr(lem) "in" constr(H) :=
   iPoseProofCore lem as true (fun Heq =>
-    eapply (tac_rewrite_in _ Heq _ _ H _ _ lr);
+    notypeclasses refine (tac_rewrite_in _ Heq _ _ H _ _ lr _ _ _ _ _ _ _ _ _ _);
       [pm_reflexivity ||
        let Heq := pretty_ident Heq in
        fail "iRewrite:" Heq "not found"
@@ -2181,7 +2233,9 @@ Tactic Notation "iInv" constr(N) "as" "(" ne_simple_intropattern_list(xs) ")"
 
 (** Miscellaneous *)
 Tactic Notation "iAccu" :=
-  iStartProof; eapply tac_accu; [pm_reflexivity || fail "iAccu: not an evar"].
+  iStartProof;
+  notypeclasses refine (tac_accu _ _ _);
+    [pm_reflexivity || fail "iAccu: not an evar"].
 
 (** Automation *)
 Global Hint Extern 0 (_ ⊢ _) => iStartProof : core.

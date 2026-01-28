@@ -6,6 +6,50 @@ From Ltac2 Require Ltac2.
 
 (** * Utility definitions used by the proofmode *)
 
+(** The tactics [resolve_tc] and [try_resolve_ground_tc] are used in the proof
+mode to obtain fine control over type class search.
+
+The tactic [resolve_tc t] calls type class search on all evars in [t]. The
+tactic fails if type class search fails on at least one evar. This tactic is
+non-focusing, so when calling [do_stuff; resolve_tc t], the tactic is executed
+even if [do_stuff] closes the goal. This is essential to ensure that no
+unshelved type classes remain when a proof mode tactic closes the goal. *)
+Ltac resolve_tc := ltac2:(t |- Std.resolve_tc (Option.get (Ltac1.to_constr t))).
+
+(** The tactic [try_resolve_ground_tc t] is similar, but has three differences
+compared to [resolve_tc t]:
+
+1. The tactic only calls type class search on evars [?x] whose type is ground
+   (i.e., contains no evars). For instance, it would solve [?x : Empty nat] but
+   not [?x : BiAffine ?PROP].
+2. The tactic does not fail.
+3. The tactic is focusing, so when calling [do_stuff; try_resolve_ground_tc t],
+   the tactic is not executed when [do_stuff] closes the goal.
+
+The typical mode of use in the proof mode is to call [try_resolve_ground_tc] on
+all user-input (e.g., arguments/specialization patterns), and call [resolve_tc]
+at the very end. Through [try_resolve_ground_tc] we ensure that classes without
+modes are not solved too eagerly (resulting in wrong instances or divergence).
+The remaining the classes that are not solved through other means (e.g., search
+for [IntoWand], unification with hypotheses) are solved in the end using
+[resolve_tc]. *)
+Ltac try_resolve_ground_tc t :=
+  lazymatch t with
+  (* We proceed under applications to solve the arguments of a given lemma one
+  by one. We proceed on both the left and the right of the application to handle
+  terms like [lem (@gset A ?eqdec ?countable)]. *)
+  | ?t1 ?t2 => try_resolve_ground_tc t1; try_resolve_ground_tc t2
+  | _ =>
+     let T := type of t in
+     try ((* call type class search if [t] has an evar and its type [T] is
+          ground. *)
+          has_evar t; is_ground T;
+          (* [t'] is the result of invoking type class search for [T] *)
+          let t' := constr:(_ : T) in
+          (* instantiate [t] with its instance [t'] *)
+          unify t t')
+  end.
+
 (** ** N-ary tactics *)
 (** Ltac1 does not provide primitives to manipulate lists (e.g., [ident_list],
 [simple_intropattern_list]), needed for [iIntros], [iDestruct], etc. We can do
