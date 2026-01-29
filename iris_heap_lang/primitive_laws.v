@@ -685,15 +685,16 @@ be able to make a base step for [Resolve e _ _] not to be (base) stuck. *)
 
 Lemma resolve_reducible e σ (p : proph_id) v :
   Atomic StronglyAtomic e → reducible e σ →
+  p ∈ σ.(used_proph_id) →
   reducible (Resolve e (Val (LitV (LitProphecy p))) (Val v)) σ.
 Proof.
-  intros A (κ & e' & σ' & efs & H).
+  intros A (κ & e' & σ' & efs & H) Hin.
   exists (κ ++ [(p, (default v (to_val e'), v))]), e', σ', efs.
   eapply (Ectx_step []); try done.
   assert (∃w, Val w = e') as [w <-].
   { unfold Atomic in A. apply (A σ e' κ σ' efs) in H. unfold is_Some in H.
     destruct H as [w H]. exists w. simpl in H. by apply (of_to_val _ _ H). }
-  simpl. constructor. by apply prim_step_to_val_is_base_step.
+  simpl. constructor; last done. by apply prim_step_to_val_is_base_step.
 Qed.
 
 Lemma step_resolve e vp vt σ1 κ e2 σ2 efs :
@@ -722,17 +723,20 @@ Proof.
       apply to_val_fill_some in Hfillvt as [-> ->]. inv_base_step.
 Qed.
 
-Lemma wp_resolve s E e Φ (p : proph_id) v (pvs : list (val * val)) :
+Lemma wp_resolve_strong s E e Φ (p : proph_id) v (pvs : list (val * val)) :
   Atomic StronglyAtomic e →
   to_val e = None →
   proph p pvs -∗
-  WP e @ s; E {{ r, ∀ pvs', ⌜pvs = (r, v)::pvs'⌝ -∗ proph p pvs' -∗ Φ r }} -∗
+  (proph p pvs -∗ WP e @ s; E {{ r, ∃ pvs', proph p pvs' ∗
+      ∀ pvs'', ⌜pvs' = (r, v)::pvs''⌝ -∗ proph p pvs'' -∗ Φ r }}) -∗
   WP Resolve e (Val $ LitV $ LitProphecy p) (Val v) @ s; E {{ Φ }}.
 Proof.
   (* TODO we should try to use a generic lifting lemma (and avoid [wp_unfold])
      here, since this breaks the WP abstraction. *)
   iIntros (A He) "Hp WPe". rewrite !wp_unfold /wp_pre /= He. simpl in *.
   iIntros (σ1 ns κ κs nt) "(Hσ & Hκ & Hsteps)".
+  iPoseProof (proph_map_agree with "[$Hκ $Hp]") as "[%Hin #_]".
+  iSpecialize ("WPe" with "Hp").
   destruct κ as [|[p' [w' v']] κ' _] using rev_ind.
   - iMod ("WPe" $! σ1 ns [] κs nt with "[$Hσ $Hκ $Hsteps]") as "[Hs WPe]".
     iModIntro. iSplit.
@@ -748,9 +752,24 @@ Proof.
     { by eexists [] _ _. }
     iModIntro. iNext. iMod "WPe" as "WPe". iModIntro.
     iApply (step_fupdN_wand with "WPe"); iIntros "> [($ & Hκ & $) WPe]".
-    iMod (proph_map_resolve_proph p' (w',v') κs with "[$Hκ $Hp]") as (vs' ->) "[$ HPost]".
-    iModIntro. rewrite !wp_unfold /wp_pre /=. iDestruct "WPe" as "[HΦ $]".
-    iMod "HΦ". iModIntro. by iApply "HΦ".
+    rewrite !wp_unfold /wp_pre /=. iDestruct "WPe" as "[>(%pvs' & Hp & HΦ) $]".
+    iMod (proph_map_resolve_proph p' (w',v') κs with "[$Hκ $Hp]") as (vs' ->) "[$ Hp]".
+    do 2 iModIntro. iApply ("HΦ" with "[//] Hp").
+Qed.
+
+(* A variant of [wp_resolve_strong] where [proph] ownership is not available
+   inside [e]. Almost all the time, this is sufficient. *)
+Lemma wp_resolve s E e Φ (p : proph_id) v (pvs : list (val * val)) :
+  Atomic StronglyAtomic e →
+  to_val e = None →
+  proph p pvs -∗
+  WP e @ s; E {{ r, ∀ pvs', ⌜pvs = (r, v)::pvs'⌝ -∗ proph p pvs' -∗ Φ r }} -∗
+  WP Resolve e (Val $ LitV $ LitProphecy p) (Val v) @ s; E {{ Φ }}.
+Proof.
+  iIntros (??) "Hp WPe".
+  iApply (wp_resolve_strong with "Hp"); first done.
+  iIntros "Hp". iApply (wp_wand with "WPe").
+  iIntros (?) "$ //".
 Qed.
 
 End lifting.

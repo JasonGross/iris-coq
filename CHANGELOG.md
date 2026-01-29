@@ -134,6 +134,12 @@ The opam packages have been renamed from `coq-*` to `rocq-*`.
   The previous specification of the `newlock` operation required the resource
   protected by the lock to be chosen and provided immediately. It is now
   possible to do it at a later time. (by Alessio Duè)
+* Tweak the semantics of `Resolve` to require that the prophecy is in the set 
+  `σ.(used_proph_id)` of so-far-created prophecies. (by Johannes Hostert and
+  Zichen Zhang)
+* Prove `wp_resolve_strong` which lets the user retain ownership of the proph
+  token `proph p pvs` when proving the weakest pre for the inner expression,
+  allowing one to atomically resolve the same prophecy twice. (by Johannes Hostert)
 
 The following `sed` script helps adjust your code to the renaming (on macOS,
 replace `sed` by `gsed`, installed via e.g. `brew install gnu-sed`).

@@ -724,6 +724,7 @@ Inductive base_step : expr → state → list observation → expr → state →
                []
   | ResolveS p v e σ w σ' κs ts :
      base_step e σ κs (Val v) σ' ts →
+     p ∈ σ.(used_proph_id) →
      base_step (Resolve e (Val $ LitV $ LitProphecy p) (Val w)) σ
                (κs ++ [(p, (v, w))]) (Val v) σ' ts.
 

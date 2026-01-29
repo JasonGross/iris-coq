@@ -61,4 +61,17 @@ Section tests.
     iApply "HΦ". iExists vs1', vs2'. eauto with iFrame.
   Qed.
 
+  Lemma test_resolve1_twice s E (p : proph_id) (vs : list (val * val)) :
+    {{{ proph p vs }}}
+      Resolve (Resolve (#1 + #2) #p #1) #p #2 @ s; E
+    {{{ RET #3 ; ∃ vs', ⌜vs = (#3, #1)::(#3, #2)::vs'⌝ ∗ proph p vs' }}}.
+  Proof.
+    iIntros (Φ) "Hp HΦ". wp_pures.
+    wp_apply (wp_resolve_strong with "Hp") as "Hp"; first done.
+    wp_apply (wp_resolve_strong with "Hp") as "Hp"; first done.
+    wp_op.
+    iIntros "!> {$Hp} %pvs'' -> $ %pvs' -> Hp".
+    iApply "HΦ". by iFrame.
+  Qed.
+
 End tests.
