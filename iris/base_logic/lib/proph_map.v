@@ -133,4 +133,14 @@ Section proph_map.
       + assert (p ∈ dom R) by exact: elem_of_dom_2.
         rewrite dom_insert. set_solver.
   Qed.
+
+  Lemma proph_map_agree pvs ps p vs :
+    proph_map_interp pvs ps ∗ proph p vs -∗ ⌜p ∈ ps ∧ vs = proph_list_resolves pvs p⌝.
+  Proof.
+    iIntros "[(%R & [%Hres %Hdom] & H●) Hp]".
+    rewrite /proph_map_interp proph_unseal /proph_def.
+    iCombine "H● Hp" gives %Hlookup.
+    iPureIntro. split; last by auto.
+    eapply Hdom, elem_of_dom_2. done.
+  Qed.
 End proph_map.
