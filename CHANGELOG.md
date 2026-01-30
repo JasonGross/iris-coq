@@ -28,6 +28,9 @@ The opam packages have been renamed from `coq-*` to `rocq-*`.
   because the unit is now an argument instead of a field, and definitions should
   use the new class `MonoidOps` instead of `Monoid`.
 * Add new unfolding lemma `agree_pcore`.
+* Add discardable fraction to `frac_auth_auth` (i.e., generalize `●F a` to
+  `●F{dq} a`) so that these elements can be split, where fractional elements
+  agree. Add or generalize corresponding lemmas. (by Isaac van Bakel)
 
 **Changes in `bi`:**
 
