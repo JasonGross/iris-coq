@@ -34,7 +34,7 @@ Global Instance: Params (@frac_auth_auth) 3 := {}.
 Global Instance: Params (@frac_auth_frag) 3 := {}.
 
 Notation "●F dq a" := (frac_auth_auth dq a)
-  (at level 10, dq custom dfrac at level 1, format "●F dq a").
+  (at level 10, dq custom dfrac at level 1, format "●F dq  a").
 Notation "◯F{ q } a" := (frac_auth_frag q a) (at level 10, format "◯F{ q }  a").
 Notation "◯F a" := (frac_auth_frag 1 a) (at level 10).
 
