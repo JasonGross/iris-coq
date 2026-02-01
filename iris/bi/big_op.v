@@ -723,6 +723,32 @@ Section sep_list2.
     - rewrite big_sepL2_lookup_acc // sep_elim_l //.
   Qed.
 
+  Lemma big_sepL2_lookup_l Φ l1 l2 i x1
+    `{!TCOr (∀ j y1 y2, Affine (Φ j y1 y2)) (∀ x2, Absorbing (Φ i x1 x2))} :
+    l1 !! i = Some x1 →
+    ([∗ list] k↦y1;y2 ∈ l1;l2, Φ k y1 y2)
+    ⊢ ∃ x2, ⌜l2 !! i = Some x2⌝ ∧ Φ i x1 x2.
+  Proof.
+    intros Hl1. destruct (l2 !! i) as [x2|] eqn:Hl2.
+    { rewrite -(bi.exist_intro x2) bi.pure_True // left_id.
+      apply big_sepL2_lookup; [|done..]. destruct select (TCOr _ _); apply _. }
+    rewrite big_sepL2_length. apply bi.pure_elim'=> ?.
+    apply lookup_lt_Some in Hl1. apply lookup_ge_None in Hl2. lia.
+  Qed.
+
+  Lemma big_sepL2_lookup_r Φ l1 l2 i x2
+    `{!TCOr (∀ j y1 y2, Affine (Φ j y1 y2)) (∀ x1, Absorbing (Φ i x1 x2))} :
+    l2 !! i = Some x2 →
+    ([∗ list] k↦y1;y2 ∈ l1;l2, Φ k y1 y2)
+    ⊢ ∃ x1, ⌜l1 !! i = Some x1⌝ ∧ Φ i x1 x2.
+  Proof.
+    intros Hl2. destruct (l1 !! i) as [x1|] eqn:Hl1.
+    { rewrite -(bi.exist_intro x1) bi.pure_True // left_id.
+      apply big_sepL2_lookup; [|done..]. destruct select (TCOr _ _); apply _. }
+    rewrite big_sepL2_length. apply bi.pure_elim'=> ?.
+    apply lookup_lt_Some in Hl2. apply lookup_ge_None in Hl1. lia.
+  Qed.
+
   Lemma big_sepL2_fmap_l {A'} (f : A → A') (Φ : nat → A' → B → PROP) l1 l2 :
     ([∗ list] k↦y1;y2 ∈ f <$> l1; l2, Φ k y1 y2)
     ⊣⊢ ([∗ list] k↦y1;y2 ∈ l1;l2, Φ k (f y1) y2).
