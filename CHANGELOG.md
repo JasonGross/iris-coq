@@ -72,6 +72,7 @@ The opam packages have been renamed from `coq-*` to `rocq-*`.
   + The file `iris.bi.lib.cmra` (with internal CMRA inclusion) has been removed.
     It has been integrated in the new file `iris.bi.cmra` (with internal CMRA
     validity).
+* Add lemmas `big_sepL2_lookup_{l,r}`.
 
 **Changes in `proofmode`:**
 
