@@ -61,10 +61,13 @@ Section increment.
   (** A proof of the incr specification that unfolds the definition of atomic
       accessors.  This is the style that most logically atomic proofs take. *)
   Lemma incr_spec_direct (l: loc) :
-    ⊢ <<{ ∀∀ (v : Z), l ↦ #v }>> incr #l @ ∅ <<{ l ↦ #(v + 1) | RET #v }>>.
+    heap_inv -∗
+    <<{ ∀∀ (v : Z), l ↦ #v }>>
+      incr #l @ ↑atomic_heapN
+    <<{ l ↦ #(v + 1) | RET #v }>>.
   Proof.
-    iIntros (Φ) "AU". iLöb as "IH". wp_lam.
-    awp_apply load_spec.
+    iIntros "#Hheap %Φ AU". iLöb as "IH". wp_lam.
+    awp_apply (load_spec with "Hheap").
     (* Prove the atomic update for load *)
     (* To [iMod] a *mask-changing* update (like "AU"), we have to unfold
        [atomic_acc] in the goal.
@@ -79,7 +82,7 @@ Section increment.
     { (* abort case *) done. }
     iIntros "Hl". iMod ("Hclose" with "Hl") as "AU". iModIntro.
     (* Now go on *)
-    wp_pures. awp_apply cas_spec; first done.
+    wp_pures. awp_apply (cas_spec with "Hheap"); first done.
     (* Prove the atomic update for CAS. We want to prove the precondition of
        that update (the ↦) as quickly as possible because every step we take
        along the way has to be "reversible" to prove the "abort" update. *)
@@ -100,16 +103,19 @@ Section increment.
       prove are in 1:1 correspondence; most logically atomic proofs will not be
       able to use them. *)
   Lemma incr_spec (l: loc) :
-    ⊢ <<{ ∀∀ (v : Z), l ↦ #v }>> incr #l @ ∅ <<{ l ↦ #(v + 1) | RET #v }>>.
+    heap_inv -∗
+    <<{ ∀∀ (v : Z), l ↦ #v }>>
+      incr #l @ ↑atomic_heapN
+    <<{ l ↦ #(v + 1) | RET #v }>>.
   Proof.
-    iIntros (Φ) "AU". iLöb as "IH". wp_lam.
-    awp_apply load_spec.
+    iIntros "#Hheap %Φ AU". iLöb as "IH". wp_lam.
+    awp_apply (load_spec with "Hheap").
     (* Prove the atomic update for load *)
     iApply (aacc_aupd_abort with "AU"); first done.
     iIntros (x) "H↦". iAaccIntro with "H↦"; first by eauto with iFrame.
     iIntros "$ !> AU !>".
     (* Now go on *)
-    wp_pures. awp_apply cas_spec; first done.
+    wp_pures. awp_apply (cas_spec with "Hheap"); first done.
     (* Prove the atomic update for CAS *)
     iApply (aacc_aupd with "AU"); first done.
     iIntros (x') "H↦". iAaccIntro with "H↦"; first by eauto with iFrame.
@@ -133,15 +139,17 @@ Section increment.
   (* TODO: Generalize to q and 1-q, based on some theory for a "maybe-pointsto"
      connective that works on [option Qp] (the type of 1-q). *)
   Lemma weak_incr_spec (l: loc) (v : Z) :
+    heap_inv -∗
     l ↦{#1/2} #v -∗
     <<{ ∀∀ (v' : Z), l ↦{#1/2} #v' }>>
-      weak_incr #l @ ∅
+      weak_incr #l @ ↑atomic_heapN
     <<{ ⌜v = v'⌝ ∗ l ↦ #(v + 1)
       | RET #v }>>.
   Proof.
-    iIntros "Hl" (Φ) "AU". wp_lam.
-    wp_apply (atomic_wp_seq $! (load_spec _) with "Hl") as "Hl".
-    wp_pures. awp_apply store_spec.
+    iIntros "#Hheap Hl" (Φ) "AU". wp_lam.
+    iPoseProof (load_spec with "Hheap") as "load_spec".
+    wp_apply (atomic_wp_seq with "load_spec Hl") as "Hl".
+    wp_pures. awp_apply store_spec; first done.
     (* Prove the atomic update for store *)
     iApply (aacc_aupd_commit with "AU"); first done.
     iIntros (x) "H↦".
@@ -155,9 +163,10 @@ Section increment.
 End increment.
 
 Section increment_client.
-  Context `{!heapGS Σ, !spawnG Σ}.
-
   Local Existing Instance primitive_atomic_heap.
+  Import atomic_heap.notation.
+
+  Context `{!heapGS Σ, !atomic_heapGS Σ, !spawnG Σ}.
 
   Definition incr_client : val :=
     λ: "x",
@@ -165,15 +174,18 @@ Section increment_client.
        incr "l" ||| incr "l".
 
   Lemma incr_client_safe (x: Z):
-    ⊢ WP incr_client #x {{ _, True }}.
+    heap_inv -∗
+    WP incr_client #x {{ _, True }}.
   Proof using Type*.
-    wp_lam. wp_alloc l as "Hl".
-    iMod (inv_alloc nroot _ (∃x':Z, l ↦ #x')%I with "[Hl]") as "#Hinv"; first eauto.
+    iIntros "#Hheap". wp_lam.
+    wp_apply (alloc_spec with "Hheap [//]"). iIntros (l) "Hl". wp_pures.
+    iMod (inv_alloc (nroot .@ "incr_client") _ (∃x':Z, l ↦ #x')%I
+           with "[Hl]") as "#Hinv"; first eauto.
     (* FIXME: I am only using persistent stuff, so I should be allowed
        to move this to the persisten context even without the additional □. *)
     iAssert (□ WP incr #l {{ _, True }})%I as "#Aupd".
-    { iIntros "!>". awp_apply incr_spec. clear x.
-      iInv nroot as (x) ">H↦". iAaccIntro with "H↦"; first by eauto 10.
+    { iIntros "!>". awp_apply incr_spec; first done. clear x.
+      iInv "Hinv" as (x) ">H↦". iAaccIntro with "H↦"; first by eauto 10.
       iIntros "H↦ !>". iSplitL "H↦"; first by eauto 10.
       (* The continuation: From after the atomic triple to the postcondition of the WP *)
       done.
@@ -183,5 +195,4 @@ Section increment_client.
     - iAssumption.
     - iIntros (??) "_ !>". done.
   Qed.
-
 End increment_client.

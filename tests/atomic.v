@@ -27,17 +27,17 @@ Section tests.
 
   Check "test_awp_apply".
   Lemma test_awp_apply (Q : iProp Σ) (l : loc) v :
-    Q -∗ l ↦ v -∗ WP !#l {{ _, Q }}.
+    heap_inv -∗ Q -∗ l ↦ v -∗ WP !#l {{ _, Q }}.
   Proof.
-    iIntros "HQ Hl". awp_apply load_spec. Show.
+    iIntros "Hheap HQ Hl". awp_apply (load_spec with "Hheap"). Show.
     iAaccIntro with "Hl"; eauto with iFrame.
   Qed.
 
   Check "test_awp_apply_without".
   Lemma test_awp_apply_without (Q : iProp Σ) (l : loc) v :
-    Q -∗ l ↦ v -∗ WP !#l {{ _, Q }}.
+    heap_inv -∗ Q -∗ l ↦ v -∗ WP !#l {{ _, Q }}.
   Proof.
-    iIntros "HQ Hl". awp_apply load_spec without "HQ". Show.
+    iIntros "Hheap HQ Hl". awp_apply (load_spec with "Hheap") without "HQ". Show.
     iAaccIntro with "Hl"; eauto with iFrame.
   Qed.
 End tests.
