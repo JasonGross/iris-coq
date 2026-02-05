@@ -238,6 +238,13 @@ Section gen_heap.
     by iCombine "Hm1 Hm2" gives %?%reservation_map_token_valid_op.
   Qed.
 
+  Global Instance meta_token_combine_as l E1 E2 :
+    CombineSepGives (meta_token l E1) (meta_token l E2) ⌜E1 ## E2⌝.
+  Proof.
+    rewrite /CombineSepGives. iIntros "[H1 H2]".
+    iDestruct (meta_token_valid_2 with "H1 H2") as %?; auto.
+  Qed.
+
   Lemma meta_token_ne l1 l2 E :
     E ≠ ∅ → meta_token l1 ⊤ -∗ meta_token l2 E -∗ ⌜l1 ≠ l2⌝.
   Proof.
