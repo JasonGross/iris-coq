@@ -248,11 +248,8 @@ Section gen_heap.
   Lemma meta_token_ne l1 l2 E :
     E ≠ ∅ → meta_token l1 ⊤ -∗ meta_token l2 E -∗ ⌜l1 ≠ l2⌝.
   Proof.
-    iIntros "% H1 H2" (->).
-    iPoseProof (meta_token_valid_2 with "H1 H2") as "%Hdisj".
-    destruct (Hdisj (coPpick E)) as [].
-    - done.
-    - by eapply coPpick_elem_of.
+    iIntros "%HE H1 H2" (->). iCombine "H1 H2" gives %Hdisj.
+    destruct HE. by apply disjoint_top_l_L.
   Qed.
 
   Lemma meta_token_difference l E1 E2 :
