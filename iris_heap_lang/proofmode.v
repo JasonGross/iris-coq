@@ -928,7 +928,7 @@ Tactic Notation "wp_cmpxchg" "as" simple_intropattern(H1) "|" simple_intropatter
     |try solve_vals_compare_safe
     |pm_reduce; intros H1; wp_finish
     |intros H2; wp_finish]
-  | |- envs_entails _ (twp ?E ?e ?Q) =>
+  | |- envs_entails _ (twp ?s ?E ?e ?Q) =>
     first
       [reshape_expr e ltac:(fun K e' => eapply (tac_twp_cmpxchg _ _ _ _ K))
       |fail 1 "wp_cmpxchg: cannot find 'CmpXchg' in" e];
