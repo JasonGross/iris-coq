@@ -213,6 +213,12 @@ Section tests.
   Proof.
     iIntros (?) "?". wp_cmpxchg as ? | ?; done.
   Qed.
+  Lemma twp_cmpxchg l v :
+    val_is_unboxed v →
+    l ↦ v -∗ WP CmpXchg #l v v [{ _, True }].
+  Proof.
+    iIntros (?) "?". wp_cmpxchg as ? | ?; done.
+  Qed.
 
   Lemma wp_xchg l (v₁ v₂ : val) :
     {{{ l ↦ v₁ }}}
