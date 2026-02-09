@@ -2,4 +2,5 @@
 (rocq.theory
  (name iris.deprecated)
  (package rocq-iris-deprecated)
+ (generate_project_file)
  (theories Stdlib stdpp iris))

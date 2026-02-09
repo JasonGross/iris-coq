@@ -151,6 +151,12 @@ The opam packages have been renamed from `coq-*` to `rocq-*`.
   invariant (`heap_inv`) to hold, and a certain namespace (`atomic_heapN`) to
   be available. The interface also provides more laws about `pointsto`. (by Alessio Duè)
 
+**Infrastructure:**
+
+* Switch to `rocq makefile` and `_RocqProject` for Makefile generation.
+* Improve dune support: properly generate `_RocqProject` and update to
+  `rocq.theory`. (by Rodolphe Lepigre)
+
 The following `sed` script helps adjust your code to the renaming (on macOS,
 replace `sed` by `gsed`, installed via e.g. `brew install gnu-sed`).
 Note that the script is not idempotent, do not run it twice.

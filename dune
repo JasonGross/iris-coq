@@ -10,11 +10,3 @@
    (pipe-stdout
     (cat config/flags)
     (bash "grep '^[^#]\\+'")))))
-
-(rule
- (deps
-  (glob_files config/*))
- (mode promote)
- (action
-  (with-stdout-to _CoqProject
-   (run ./gen_CoqProject.sh))))
