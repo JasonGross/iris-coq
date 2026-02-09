@@ -1,6 +1,6 @@
 (env
  (_ ; Applies to all profiles (dev, release, ...).
-  (coq
+  (rocq
    ; Configure coqc flags.
    (flags (:standard %{read-lines:flags.dune})))))
 
