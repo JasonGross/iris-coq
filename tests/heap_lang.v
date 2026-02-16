@@ -393,6 +393,30 @@ Section tests.
     Fail wp_pure credit: "Hcred".
   Abort.
 
+  Check "test_wp_meta_token_address_reuse".
+  (* HeapLang's allocator does not re-use freed locations.
+     This test shows how one can reason about this in the logic,
+     using the [meta_token]. *)
+  Definition address_uniqueness : expr :=
+   (let: "l1" := Alloc #1 in
+    Free "l1";;
+    let: "l2" := Alloc #2 in
+    Free "l2";;
+    if: "l1" ≠ "l2" then #0 else #0 #0)%E.
+
+  Lemma test_wp_meta_token_address_reuse :
+    ⊢ WP address_uniqueness {{ v, True }}.
+  Proof.
+    unfold address_uniqueness.
+    wp_apply (wp_alloc with "[//]") as (l1) "[Hl1 Hmeta1]". wp_pures.
+    wp_free. wp_pures.
+    wp_apply (wp_alloc with "[//]") as (l2) "[Hl2 Hmeta2]". wp_pures.
+    wp_free. wp_pures.
+    iPoseProof (meta_token_ne with "Hmeta1 Hmeta2") as "%Hne"; first done.
+    rewrite bool_decide_false; last by congruence.
+    wp_pures. done.
+  Qed.
+
 End tests.
 
 Section pointsto_tests.

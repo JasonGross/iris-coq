@@ -73,6 +73,8 @@ The opam packages have been renamed from `coq-*` to `rocq-*`.
     It has been integrated in the new file `iris.bi.cmra` (with internal CMRA
     validity).
 * Add lemmas `big_sepL2_lookup_{l,r}`.
+* Add laws about the exclusivity of `gen_heap`'s `meta_token`. (by Johannes
+  Hostert)
 
 **Changes in `proofmode`:**
 
