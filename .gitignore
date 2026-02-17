@@ -16,8 +16,8 @@
 *.crashcoqide
 .env
 builddep/
-_CoqProject
-_CoqProject.*
+_RocqProject
+_RocqProject.*
 Makefile.coq
 Makefile.coq.conf
 .Makefile.coq.d

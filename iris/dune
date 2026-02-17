@@ -2,4 +2,5 @@
 (rocq.theory
  (name iris)
  (package rocq-iris)
+ (generate_project_file)
  (theories Stdlib Ltac2 stdpp))

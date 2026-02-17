@@ -1,4 +1,4 @@
-# Specification for custom Rocq compilation flags (turns into `-arg` values in `_CoqProject`).
+# Specification for custom Rocq compilation flags (turns into `-arg` values in `_RocqProject`).
 # Syntax:
 # - One flag per line with no leading/trailing blanks.
 # - Empty lines and lines starting with '#' are ignored.
