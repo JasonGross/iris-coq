@@ -478,6 +478,11 @@ Section instances.
     - intros Pi Qi. split=> i /=. rewrite si_pure_impl.
       by rewrite (bi.forall_elim i) bi.pure_True // left_id.
     - intros A Φi. split=> i /=. apply si_pure_forall_2.
+    - intros P Q. split=> i /=. rewrite (bi.forall_elim i).
+      rewrite -si_pure_pure !persistently_impl_si_pure si_pure_pure.
+      f_equiv. apply bi.forall_intro=> j.
+      apply bi.impl_intro_l, bi.pure_elim_l=> ?. rewrite bi.pure_True // left_id.
+      f_equiv. by apply monPred_mono.
     - intros Pi. split=> i /=. apply si_pure_later.
     - intros Pi. split=> i /=. by rewrite bi.sep_elim_r.
     - intros P. by rewrite -si_emp_valid_later_1 bi.later_forall.
@@ -589,17 +594,6 @@ Section instances.
 
   Global Instance monPred_bi_embed_fupd `{BiFUpd PROP} : BiEmbedFUpd PROP monPredI.
   Proof. split. by unseal. Qed.
-
-  Global Instance monPred_bi_persistently_impl_si_pure `{!Sbi PROP,
-      !BiPersistentlyImplSiPure PROP} :
-    BiPersistentlyImplSiPure monPredI.
-  Proof.
-    intros P Q. split=> i. unseal. rewrite (bi.forall_elim i).
-    rewrite -si_pure_pure !persistently_impl_si_pure si_pure_pure.
-    f_equiv. apply bi.forall_intro=> j.
-    apply bi.impl_intro_l, bi.pure_elim_l=> ?. rewrite bi.pure_True // left_id.
-    f_equiv. by apply monPred_mono.
-  Qed.
 
   Global Instance monPred_sbi_emp_valid_exist `{!Sbi PROP, @BiIndexBottom I bot} :
     SbiEmpValidExist PROP → SbiEmpValidExist monPredI.

@@ -26,8 +26,7 @@ Section core.
     by iApply "HPQ".
   Qed.
 
-  Global Instance coreP_persistent
-      `{!BiPersistentlyForall PROP, !BiPersistentlyImplSiPure PROP} P :
+  Global Instance coreP_persistent `{!BiPersistentlyForall PROP} P :
     Persistent (coreP P).
   Proof.
     rewrite /coreP /Persistent. iIntros "HC" (Q).
@@ -65,7 +64,7 @@ Section core.
     [<affine>] modality makes it stronger since it appears in the LHS of the
     [⊢] in the premise. As a user, you have to prove [<affine> coreP P ⊢ Q],
     which is weaker than [coreP P ⊢ Q]. *)
-  Lemma coreP_entails `{!BiPersistentlyForall PROP, !BiPersistentlyImplSiPure PROP} P Q :
+  Lemma coreP_entails `{!BiPersistentlyForall PROP} P Q :
     (<affine> coreP P ⊢ Q) ↔ (P ⊢ <pers> Q).
   Proof.
     split.
@@ -74,8 +73,7 @@ Section core.
     - iIntros (->) "HcQ". by iDestruct (coreP_elim with "HcQ") as "#HQ".
   Qed.
   (** A more convenient variant of the above lemma for affine [P]. *)
-  Lemma coreP_entails' `{!BiPersistentlyForall PROP, !BiPersistentlyImplSiPure PROP}
-      P Q `{!Affine P} :
+  Lemma coreP_entails' `{!BiPersistentlyForall PROP} P Q `{!Affine P} :
     (coreP P ⊢ Q) ↔ (P ⊢ □ Q).
   Proof.
     rewrite -(affine_affinely (coreP P)) coreP_entails. split.

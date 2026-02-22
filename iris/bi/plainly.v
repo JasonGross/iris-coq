@@ -225,12 +225,11 @@ Section plainly.
   Lemma impl_wand_affinely_plainly P Q : (■ P → Q) ⊣⊢ (<affine> ■ P -∗ Q).
   Proof. by rewrite -(persistently_elim_plainly P) impl_wand_intuitionistically. Qed.
 
-  Lemma persistently_impl_plainly `{!BiPersistentlyImplSiPure PROP} P Q :
-    (■ P → <pers> Q) ⊢ <pers> (■ P → Q).
+  Lemma persistently_impl_plainly P Q : (■ P → <pers> Q) ⊢ <pers> (■ P → Q).
   Proof. by apply persistently_impl_si_pure. Qed.
-  Lemma persistently_wand_affinely_plainly `{!BiPersistentlyImplSiPure PROP} P Q :
+  Lemma persistently_wand_affinely_plainly P Q :
     (<affine> ■ P -∗ <pers> Q) ⊢ <pers> (<affine> ■ P -∗ Q).
-  Proof. 
+  Proof.
     rewrite -!impl_wand_affinely_plainly. apply: persistently_impl_plainly.
   Qed.
 
@@ -323,7 +322,7 @@ Section plainly.
   Lemma plain_persistent P : Plain P → Persistent P.
   Proof. intros. by rewrite /Persistent -plainly_elim_persistently. Qed.
 
-  Global Instance impl_persistent `{!BiPersistentlyImplSiPure PROP} P Q :
+  Global Instance impl_persistent P Q :
     Absorbing P → Plain P → Persistent Q → Persistent (P → Q).
   Proof.
     intros. by rewrite /Persistent {2}(plain P) -persistently_impl_plainly
@@ -333,7 +332,7 @@ Section plainly.
   Global Instance plainly_persistent P : Persistent (■ P).
   Proof. by rewrite /Persistent persistently_elim_plainly. Qed.
 
-  Global Instance wand_persistent `{!BiPersistentlyImplSiPure PROP} P Q :
+  Global Instance wand_persistent P Q :
     Plain P → Persistent Q → Absorbing Q → Persistent (P -∗ Q).
   Proof.
     intros. rewrite /Persistent {2}(plain P). trans (<pers> (■ P → Q))%I.

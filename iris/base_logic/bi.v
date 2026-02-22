@@ -146,6 +146,7 @@ Proof.
   - exact: si_pure_si_emp_valid.
   - exact: si_pure_impl_2.
   - exact: @si_pure_forall_2.
+  - exact: persistently_impl_si_pure.
   - exact: si_pure_later.
   - (* Absorbing (<si_pure> Pi) (ADMISSIBLE) *)
     intros Pi. apply True_sep_2.
@@ -194,10 +195,6 @@ Proof. exact: @later_contractive. Qed.
 
 Global Instance uPred_sbi_emp_valid_exist {M} : SbiEmpValidExist (uPredI M).
 Proof. exact: @si_emp_valid_exist_1. Qed.
-
-Global Instance uPred_persistently_impl_si_pure M :
-  BiPersistentlyImplSiPure (uPredI M).
-Proof. exact: persistently_impl_si_pure. Qed.
 
 Global Instance uPred_bi_bupd_sbi M : BiBUpdSbi (uPredI M).
 Proof. exact: bupd_si_pure. Qed.
