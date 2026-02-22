@@ -591,13 +591,14 @@ Section instances.
   Proof. split. by unseal. Qed.
 
   Global Instance monPred_bi_persistently_impl_si_pure `{!Sbi PROP,
-      !@BiIndexBottom I bot, !BiPersistentlyForall PROP,
       !BiPersistentlyImplSiPure PROP} :
     BiPersistentlyImplSiPure monPredI.
   Proof.
-    intros P Q. split=> i. unseal. setoid_rewrite bi.pure_impl_forall.
-    do 2 setoid_rewrite bi.persistently_forall.
-    by setoid_rewrite persistently_impl_si_pure.
+    intros P Q. split=> i. unseal. rewrite (bi.forall_elim i).
+    rewrite -si_pure_pure !persistently_impl_si_pure si_pure_pure.
+    f_equiv. apply bi.forall_intro=> j.
+    apply bi.impl_intro_l, bi.pure_elim_l=> ?. rewrite bi.pure_True // left_id.
+    f_equiv. by apply monPred_mono.
   Qed.
 
   Global Instance monPred_sbi_emp_valid_exist `{!Sbi PROP, @BiIndexBottom I bot} :
