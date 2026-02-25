@@ -139,6 +139,11 @@ Record SbiMixin (PROP : bi) `(!SiPure PROP, SiEmpValid PROP) := {
     (<si_pure> Pi → <si_pure> Qi) ⊢@{PROP} <si_pure> (Pi → Qi);
   sbi_mixin_si_pure_forall_2 {A} (Φi : A → siProp) :
     (∀ x, <si_pure> Φi x) ⊢@{PROP} <si_pure> (∀ x, Φi x);
+  (** This rule generalizes that persistent propositions are closed under
+  implication and wand (subject to other conditions), see [impl_persistent] and
+  [wand_persistent]. *)
+  sbi_mixin_persistently_impl_si_pure Pi (Q : PROP) :
+    (<si_pure> Pi → <pers> Q) ⊢ <pers> (<si_pure> Pi → Q);
   sbi_mixin_si_pure_later Pi :
     <si_pure> ▷ Pi ⊣⊢@{PROP} ▷ <si_pure> Pi;
 
@@ -209,18 +214,6 @@ Global Arguments SbiEmpValidExist _ {_}.
 Global Arguments si_emp_valid_exist_1 _ {_ _} _.
 Global Hint Mode SbiEmpValidExist ! - : typeclass_instances.
 
-(** [BiPersistentlyImplSiPure] generalizes that persistent propositions are
-closed under implication and wand (subject to other conditions), see
-[impl_persistent] and [wand_persistent]. This property does not hold for every
-BI, take [monPred I PROP], where it only holds if [I] has a bottom element. See
-[monPred_bi_persistently_impl_si_pure]. *)
-Class BiPersistentlyImplSiPure PROP `{!Sbi PROP} :=
-  persistently_impl_si_pure Pi (Q : PROP) :
-    (<si_pure> Pi → <pers> Q) ⊢ <pers> (<si_pure> Pi → Q).
-Global Arguments BiPersistentlyImplSiPure _ {_}.
-Global Arguments persistently_impl_si_pure _ {_ _} _.
-Global Hint Mode BiPersistentlyImplSiPure ! - : typeclass_instances.
-
 (** [siProp] is an SBI by taking [<si_pure>] and [<si_emp_valid>] to be the
 identity. Although this instance is trivial, it is a very useful one. It means
 that all lemmas and instances about internal equality [≡] and internal validity
@@ -237,9 +230,6 @@ Global Instance siprop_sbi : Sbi siPropI :=
   {| sbi_sbi_mixin := siprop_sbi_mixin;
      sbi_sbi_prop_ext_mixin := siprop_sbi_prop_ext_mixin |}.
 Global Instance siprop_sbi_emp_valid_exist : SbiEmpValidExist siPropI.
-Proof. done. Qed.
-Global Instance siprop_bi_persistently_impl_si_pure :
-  BiPersistentlyImplSiPure siPropI.
 Proof. done. Qed.
 
 (** ** The primitive laws *)
@@ -272,6 +262,9 @@ Section sbi_laws.
   Lemma si_pure_forall_2 {A} (Φi : A → siProp) :
    (∀ x, <si_pure> Φi x) ⊢@{PROP} <si_pure> (∀ x, Φi x).
   Proof. eapply sbi_mixin_si_pure_forall_2, sbi_sbi_mixin. Qed.
+  Lemma persistently_impl_si_pure Pi (Q : PROP) :
+    (<si_pure> Pi → <pers> Q) ⊢ <pers> (<si_pure> Pi → Q).
+  Proof. eapply sbi_mixin_persistently_impl_si_pure, sbi_sbi_mixin. Qed.
   Lemma si_pure_later Pi :
     <si_pure> ▷ Pi ⊣⊢@{PROP} ▷ <si_pure> Pi.
   Proof. eapply sbi_mixin_si_pure_later, sbi_sbi_mixin. Qed.

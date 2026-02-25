@@ -62,7 +62,7 @@ The opam packages have been renamed from `coq-*` to `rocq-*`.
   + Remove the class `BiPropExt`. This class is subsumed by `Sbi` (i.e., every
     SBI should satisfy the extensional equality law).
   + Remove the classes `BiPersistentlyImplPlainly` and `BiPlainlyExist`. These
-    classes are subsumed by `BiPersistentlyImplSiPure` and `SbiEmpValidExist`.
+    classes are subsumed by `Sbi` and `SbiEmpValidExist`.
   + Remove the classes `BiBUpdPlainly` and `BiFUpdPlainly`. These classes are
     subsumed by `BiBUpdSbi` and `BiFUpdSbi`.
   + Remove the classes `BiEmbedInternalEq` and `BiEmbedPlainly`. These classes
