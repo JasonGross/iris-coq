@@ -216,14 +216,23 @@ Proof.
 Qed.
 
 (** Fork: Not using Texan triples to avoid some unnecessary [True] *)
-Lemma wp_fork s E e Φ :
-  ▷ WP e @ s; ⊤ {{ _, True }} -∗ ▷ Φ (LitV LitUnit) -∗ WP Fork e @ s; E {{ Φ }}.
+(* This slightly stronger version of the law allows a fancy update *after* stripping
+the ▷ and *before* splitting the resources among the two threads. This is rarely ever
+needed, but is technically stronger than [wp_fork] below. *)
+Lemma wp_fork_fupd s E e Φ :
+  ▷ (|={E}=> WP e @ s; ⊤ {{ _, True }} ∗ Φ (LitV LitUnit)) ⊢ WP Fork e @ s; E {{ Φ }}.
 Proof.
-  iIntros "He HΦ". iApply wp_lift_atomic_base_step; [done|].
+  iIntros "HeΦ". iApply wp_lift_atomic_base_step; [done|].
   iIntros (σ1 ns κ κs nt) "(?&?&Hsteps) !>"; iSplit; first by eauto with base_step.
   iIntros "!>" (v2 σ2 efs Hstep) "_"; inv_base_step.
   iMod (steps_auth_update_S with "Hsteps") as "Hsteps".
+  iMod "HeΦ" as "[He HΦ]".
   by iFrame.
+Qed.
+Lemma wp_fork s E e Φ :
+  ▷ WP e @ s; ⊤ {{ _, True }} -∗ ▷ Φ (LitV LitUnit) -∗ WP Fork e @ s; E {{ Φ }}.
+Proof.
+  iIntros "He HΦ". iApply wp_fork_fupd. iNext. iModIntro. iFrame.
 Qed.
 
 Lemma twp_fork s E e Φ :
