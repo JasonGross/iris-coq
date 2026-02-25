@@ -150,6 +150,8 @@ The opam packages have been renamed from `coq-*` to `rocq-*`.
   implementations. Every operation now requires an implementation-defined
   invariant (`heap_inv`) to hold, and a certain namespace (`atomic_heapN`) to
   be available. The interface also provides more laws about `pointsto`. (by Alessio Duè)
+* Prove `wp_fork_fupd` which allows more fancy updates when forking. (by Johannes
+  Hostert)
 
 **Infrastructure:**
 
