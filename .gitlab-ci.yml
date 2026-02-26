@@ -61,6 +61,13 @@ build-rocq.dev:
     OCAML: "ocaml-base-compiler.4.14.0" # for faster rebuilds
     OPAM_PINS: "rocq-core version dev"
 
+# Check the upcoming 9.2 release.
+build-rocq.9.2.dev:
+  <<: *template
+  variables:
+    OCAML: "ocaml-base-compiler.4.14.0" # for faster rebuilds
+    OPAM_PINS: "rocq-core version 9.2.dev"
+
 # The newest version runs with timing, outside MRs.
 build-rocq.9.1.0:
   <<: *template
