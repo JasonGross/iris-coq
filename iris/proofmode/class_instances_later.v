@@ -333,6 +333,21 @@ Proof.
   move=> Hn [_ ->|->] <-; by rewrite -!laterN_add -Hn Nat.add_comm.
 Qed.
 
+(** When considering [▷?p] where we do not know the value of [p] (0 or 1 laters),
+this instance considers the worst case ([p = true]) and cancels a later too much.
+Hence this instance has higher cost than [into_laterN_laterN], which does not
+cause information loss. See [test_iNext_laterN_bool_later_2]. *)
+Global Instance into_laterN_laterN_bool only_head n p n' m' P Q lQ :
+  NatCancel n 1 n' m' →
+  TCIf (TCEq 1 m') (IntoLaterN only_head n' P Q) (MaybeIntoLaterN only_head n' P Q) →
+  MakeLaterN m' Q lQ →
+  IntoLaterN only_head n (▷?p P) lQ | 3.
+Proof.
+  destruct p; simpl; [apply into_laterN_later|].
+  rewrite /MakeLaterN /IntoLaterN /MaybeIntoLaterN /NatCancel.
+  move=> Hn [_ ->|->] <-; rewrite -!laterN_add -Hn Nat.add_comm /= -later_intro //.
+Qed.
+
 Global Instance into_laterN_and_l n P1 P2 Q1 Q2 :
   IntoLaterN false n P1 Q1 → MaybeIntoLaterN false n P2 Q2 →
   IntoLaterN false n (P1 ∧ P2) (Q1 ∧ Q2) | 10.

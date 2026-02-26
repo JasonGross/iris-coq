@@ -1398,6 +1398,10 @@ Qed.
 
 Lemma test_iNext_laterN_later P n : ▷ ▷^n P -∗ ▷^n ▷ P.
 Proof. iIntros "H". iNext. by iNext. Qed.
+Lemma test_iNext_laterN_bool_later b P : ▷?b P -∗ ▷ P.
+Proof. iIntros "H". by iNext. Qed.
+Lemma test_iNext_laterN_bool_later_2 b P : ▷?b ▷ P -∗ ▷ ▷?b P.
+Proof. iIntros "H". by do 2 iNext. Qed.
 Lemma test_iNext_later_laterN P n : ▷^n ▷ P -∗ ▷ ▷^n P.
 Proof. iIntros "H". iNext. by iNext. Qed.
 Lemma test_iNext_plus_1 P n1 n2 : ▷ ▷^n1 ▷^n2 P -∗ ▷^n1 ▷^n2 ▷ P.
